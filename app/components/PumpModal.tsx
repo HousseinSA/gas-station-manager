@@ -199,13 +199,13 @@ const PumpModal = ({
                           type="number"
                           value={nozzle.previousIndex === 0 ? "" : nozzle.previousIndex}
                           onChange={(e) => {
-                            const val = e.target.value === "" ? 0 : parseFloat(e.target.value)
+                            const val = e.target.value === "" ? 0 : parseInt(e.target.value)
                             updateNozzleForm(index, "previousIndex", val)
                             updateNozzleForm(index, "currentIndex", val)
                           }}
                           className="w-full px-3 py-2 text-sm border rounded-lg"
-                          step="0.01"
-                          placeholder="0.00"
+                          step="1"
+                          placeholder="0"
                         />
                       </div>
                     </div>

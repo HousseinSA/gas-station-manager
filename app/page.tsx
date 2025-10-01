@@ -2,12 +2,10 @@
 import React, { useState } from "react"
 import { Plus, Trash2, LogOut, Fuel } from "lucide-react"
 
-// Hooks
 import { useAuth } from "./hooks/useAuth"
 import { useStations } from "./hooks/useStations"
 import { useMetrics } from "./hooks/useMetrics"
 
-// Components
 import Login from "./components/Login"
 import Dashboard from "./components/Dashboard"
 import Tanks from "./components/Tanks"
@@ -86,9 +84,8 @@ const GasStationApp = () => {
       pumpForm.nozzles.length === 0
     )
       return
-
-    // Check if we're editing an existing pump or adding a new one
-    const isEditing = pumpForm.nozzles.length > 0 && pumpForm.nozzles[0].id !== undefined
+    const isEditing =
+      pumpForm.nozzles.length > 0 && pumpForm.nozzles[0].id !== undefined
 
     if (isEditing) {
       // Find the pump ID from the first nozzle
@@ -119,7 +116,7 @@ const GasStationApp = () => {
 
   const prepareNozzles = (count: number) => {
     if (count < 1) count = 1
-    if (count > 4) count = 4  // Limit to maximum 4 nozzles per pump
+    if (count > 4) count = 4 // Limit to maximum 4 nozzles per pump
 
     // Only create nozzles if count is different from current nozzles length
     if (pumpForm.nozzles.length === count) return
@@ -138,10 +135,10 @@ const GasStationApp = () => {
           nozzleNumber: i + 1,
           fuelType: "Gasoil",
           tankId: 0,
-          salePrice: 0,  // No default value
-          costPrice: 0,  // No default value
-          previousIndex: 0,  // No default value
-          currentIndex: 0,  // No default value
+          salePrice: 0, // No default value
+          costPrice: 0, // No default value
+          previousIndex: 0, // Starting at 0 instead of a fixed value
+          currentIndex: 0, // Starting at 0 instead of a fixed value
         })
       }
     }
@@ -151,7 +148,7 @@ const GasStationApp = () => {
 
   // Format number with thousand separators for currency
   const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('fr-MR').format(value)
+    return new Intl.NumberFormat("fr-MR").format(value)
   }
 
   // ───── Render ─────
@@ -168,7 +165,6 @@ const GasStationApp = () => {
             <Fuel className="w-8 h-8" />
             <div>
               <h1 className="text-xl font-bold">Gestion Stations-Service</h1>
-              <p className="text-sm text-green-100">Mauritanie</p>
             </div>
           </div>
           <button
@@ -258,8 +254,8 @@ const GasStationApp = () => {
               <Pumps
                 pumps={currentStation.pumps}
                 onAddPump={() => {
-                  setIsEditingPump(false);
-                  setShowPumpModal(true);
+                  setIsEditingPump(false)
+                  setShowPumpModal(true)
                 }}
                 onDeletePump={(pumpId) => deletePump(currentStation.id, pumpId)}
                 onUpdateNozzleIndex={(pumpId, nozzleId, newIndex) =>

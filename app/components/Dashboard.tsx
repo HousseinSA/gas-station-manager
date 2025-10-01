@@ -17,7 +17,7 @@ const Dashboard = ({ metrics }: DashboardProps) => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-gray-600 text-sm">Total Litres</p>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl ">
               {metrics.totalLiters.toFixed(2)} L
             </p>
           </div>
@@ -28,7 +28,7 @@ const Dashboard = ({ metrics }: DashboardProps) => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-gray-600 text-sm">Revenu Total</p>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl">
               {metrics.totalRevenue.toFixed(0)} MRU
             </p>
           </div>
@@ -39,7 +39,7 @@ const Dashboard = ({ metrics }: DashboardProps) => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-gray-600 text-sm">Bénéfice Total</p>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl ">
               {metrics.totalProfit.toFixed(0)} MRU
             </p>
           </div>

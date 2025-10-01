@@ -118,12 +118,12 @@ const Pumps = ({ pumps, onAddPump, onDeletePump, onUpdateNozzleIndex, formatCurr
                         type="number"
                         value={nozzle.currentIndex || ""}
                         onChange={(e) => {
-                          const newValue = e.target.value === "" ? "0" : e.target.value
+                          const newValue = e.target.value === "" ? 0 : parseInt(e.target.value)
                           onUpdateNozzleIndex(pump.id, nozzle.id, newValue)
                         }}
                         className="ml-2 w-28 px-2 py-1 border rounded"
-                        step="0.01"
-                        placeholder="0.00"
+                        step="1"
+                        placeholder="0"
                       />
                     </div>
                     <div>
