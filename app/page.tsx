@@ -110,34 +110,35 @@ const GasStationApp = () => {
       return
     }
 
-    // Validate nozzles
     if (pumpForm.nozzles.length === 0) {
       alert("Au moins un pistolet est requis")
       return
     }
 
     if (isEditingPump) {
-      // Find the pump ID from the first nozzle
-      const pumpId = pumpForm.nozzles[0].id
+      const existingPump = currentStation.pumps.find(
+        (p) => p.nozzles[0].id === pumpForm.nozzles[0].id
+      )
 
-      // Update the existing pump
-      updatePump(currentStation.id, pumpId, {
-        pumpNumber: pumpForm.pumpNumber,
-        nozzles: pumpForm.nozzles,
-      })
+      if (existingPump) {
+        updatePump(currentStation.id, existingPump.id, {
+          pumpNumber: pumpForm.pumpNumber,
+          nozzles: pumpForm.nozzles.map((nozzle) => ({
+            ...nozzle,
+            id: nozzle.id,
+          })),
+        })
+      }
     } else {
-      // Add a new pump - ensure currentIndex equals previousIndex for new pumps
-      const nozzlesWithCorrectIndex = pumpForm.nozzles.map(nozzle => ({
+      const nozzlesWithCorrectIndex = pumpForm.nozzles.map((nozzle) => ({
         ...nozzle,
-        currentIndex: nozzle.previousIndex
+        currentIndex: nozzle.previousIndex,
       }))
-      
       addPump(currentStation.id, {
         pumpNumber: pumpForm.pumpNumber,
         nozzles: nozzlesWithCorrectIndex,
       })
     }
-
     setPumpForm({ pumpNumber: "", nozzleCount: "1", nozzles: [] })
     setShowPumpModal(false)
   }
@@ -183,10 +184,10 @@ const GasStationApp = () => {
     }
 
     // Update both nozzles and nozzleCount to ensure consistency
-    setPumpForm({ 
-      ...pumpForm, 
+    setPumpForm({
+      ...pumpForm,
       nozzles: newNozzles,
-      nozzleCount: count.toString()
+      nozzleCount: count.toString(),
     })
   }
 
@@ -427,5 +428,4 @@ const GasStationApp = () => {
     </div>
   )
 }
-
 export default GasStationApp

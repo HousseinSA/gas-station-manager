@@ -133,7 +133,7 @@ const Pumps = ({
                           const newValue =
                             e.target.value === ""
                               ? nozzle.previousIndex
-                              : parseInt(e.target.value, 10)
+                              : parseFloat(e.target.value)
                           if (
                             !isNaN(newValue) &&
                             newValue >= nozzle.previousIndex
