@@ -3,16 +3,25 @@ import React, { useState } from "react"
 import { Plus, Trash2, LogOut, Fuel } from "lucide-react"
 
 import { useAuth } from "./hooks/useAuth"
-import { useStations } from "./hooks/useStations"
+import { useStations, Nozzle } from "./hooks/useStations"
 import { useMetrics } from "./hooks/useMetrics"
+import { useIndexHistory } from "./hooks/useIndexHistory"
+import { useTankHistory } from "./hooks/useTankHistory"
 
 import Login from "./components/Login"
 import Dashboard from "./components/Dashboard"
 import Tanks from "./components/Tanks"
 import Pumps from "./components/Pumps"
+import HistoryView from "./components/HistoryView"
 import StationModal from "./components/StationModal"
 import TankModal from "./components/TankModal"
 import PumpModal from "./components/PumpModal"
+
+interface PumpForm {
+  pumpNumber: string
+  nozzleCount: string
+  nozzles: Nozzle[]
+}
 
 const GasStationApp = () => {
   const { isLoggedIn, login, logout } = useAuth()
@@ -31,9 +40,14 @@ const GasStationApp = () => {
     updateNozzleIndex,
   } = useStations()
   const metrics = useMetrics(currentStation)
+  const indexHistory = useIndexHistory(currentStation?.id || null)
+  const tankHistory = useTankHistory(currentStation?.id || null)
 
   // UI states
   const [activeTab, setActiveTab] = useState("tableau-de-bord")
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  )
   const [showStationModal, setShowStationModal] = useState(false)
   const [showTankModal, setShowTankModal] = useState(false)
   const [showPumpModal, setShowPumpModal] = useState(false)
@@ -46,7 +60,7 @@ const GasStationApp = () => {
     capacity: "",
     currentLevel: "",
   })
-  const [pumpForm, setPumpForm] = useState({
+  const [pumpForm, setPumpForm] = useState<PumpForm>({
     pumpNumber: "",
     nozzleCount: "1",
     nozzles: [],
@@ -78,16 +92,31 @@ const GasStationApp = () => {
   }
 
   const handleAddPump = () => {
-    if (
-      !currentStation ||
-      !pumpForm.pumpNumber.trim() ||
-      pumpForm.nozzles.length === 0
-    )
-      return
-    const isEditing =
-      pumpForm.nozzles.length > 0 && pumpForm.nozzles[0].id !== undefined
+    if (!currentStation) return
 
-    if (isEditing) {
+    // Validate pump number
+    if (!pumpForm.pumpNumber.trim()) {
+      alert("Le numéro de pompe est requis")
+      return
+    }
+
+    // Check for duplicate pump number when adding a new pump
+    const isDuplicatePumpNumber = currentStation.pumps.some(
+      (p) => p.pumpNumber === pumpForm.pumpNumber
+    )
+
+    if (!isEditingPump && isDuplicatePumpNumber) {
+      alert("Ce numéro de pompe existe déjà dans la station")
+      return
+    }
+
+    // Validate nozzles
+    if (pumpForm.nozzles.length === 0) {
+      alert("Au moins un pistolet est requis")
+      return
+    }
+
+    if (isEditingPump) {
       // Find the pump ID from the first nozzle
       const pumpId = pumpForm.nozzles[0].id
 
@@ -97,10 +126,15 @@ const GasStationApp = () => {
         nozzles: pumpForm.nozzles,
       })
     } else {
-      // Add a new pump
+      // Add a new pump - ensure currentIndex equals previousIndex for new pumps
+      const nozzlesWithCorrectIndex = pumpForm.nozzles.map(nozzle => ({
+        ...nozzle,
+        currentIndex: nozzle.previousIndex
+      }))
+      
       addPump(currentStation.id, {
         pumpNumber: pumpForm.pumpNumber,
-        nozzles: pumpForm.nozzles,
+        nozzles: nozzlesWithCorrectIndex,
       })
     }
 
@@ -108,7 +142,11 @@ const GasStationApp = () => {
     setShowPumpModal(false)
   }
 
-  const updateNozzleForm = (index: number, field: string, value: any) => {
+  const updateNozzleForm = (
+    index: number,
+    field: keyof Nozzle,
+    value: Nozzle[keyof Nozzle]
+  ) => {
     const updatedNozzles = [...pumpForm.nozzles]
     updatedNozzles[index] = { ...updatedNozzles[index], [field]: value }
     setPumpForm({ ...pumpForm, nozzles: updatedNozzles })
@@ -121,7 +159,7 @@ const GasStationApp = () => {
     // Only create nozzles if count is different from current nozzles length
     if (pumpForm.nozzles.length === count) return
 
-    const newNozzles = []
+    const newNozzles: Nozzle[] = []
 
     // Create the exact number of nozzles needed
     for (let i = 0; i < count; i++) {
@@ -129,21 +167,27 @@ const GasStationApp = () => {
       if (i < pumpForm.nozzles.length) {
         newNozzles.push(pumpForm.nozzles[i])
       } else {
-        // Create new nozzle with default values (no default prices or indexes)
+        // Create new nozzle with proper initialization
+        const defaultTankId = currentStation?.tanks.find((t) => t.id)?.id || 0
         newNozzles.push({
           id: Date.now() + i,
           nozzleNumber: i + 1,
           fuelType: "Gasoil",
-          tankId: 0,
-          salePrice: 0, // No default value
-          costPrice: 0, // No default value
-          previousIndex: 0, // Starting at 0 instead of a fixed value
-          currentIndex: 0, // Starting at 0 instead of a fixed value
+          tankId: defaultTankId,
+          salePrice: 0,
+          costPrice: 0,
+          previousIndex: 0,
+          currentIndex: 0,
         })
       }
     }
 
-    setPumpForm({ ...pumpForm, nozzles: newNozzles })
+    // Update both nozzles and nozzleCount to ensure consistency
+    setPumpForm({ 
+      ...pumpForm, 
+      nozzles: newNozzles,
+      nozzleCount: count.toString()
+    })
   }
 
   // Format number with thousand separators for currency
@@ -221,6 +265,7 @@ const GasStationApp = () => {
                   { id: "tableau-de-bord", label: "Tableau de Bord" },
                   { id: "reservoirs", label: "Réservoirs" },
                   { id: "pompes", label: "Pompes" },
+                  { id: "historique", label: "Historique" },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -258,18 +303,72 @@ const GasStationApp = () => {
                   setShowPumpModal(true)
                 }}
                 onDeletePump={(pumpId) => deletePump(currentStation.id, pumpId)}
-                onUpdateNozzleIndex={(pumpId, nozzleId, newIndex) =>
-                  updateNozzleIndex(
-                    currentStation.id,
-                    pumpId,
-                    nozzleId,
-                    Number(newIndex)
-                  )
-                }
+                onUpdateNozzleIndex={(pumpId, nozzleId, newIndex) => {
+                  const pump = currentStation.pumps.find((p) => p.id === pumpId)
+                  const nozzle = pump?.nozzles[nozzleId]
+
+                  if (pump && nozzle) {
+                    // Update the index
+                    updateNozzleIndex(
+                      currentStation.id,
+                      pumpId,
+                      nozzleId,
+                      Number(newIndex)
+                    )
+
+                    // Track the index update in history
+                    indexHistory.addIndexUpdate({
+                      nozzleId,
+                      pumpId,
+                      previousIndex: nozzle.previousIndex,
+                      currentIndex: Number(newIndex),
+                      liters: Number(newIndex) - nozzle.previousIndex,
+                      salePrice: nozzle.salePrice,
+                      costPrice: nozzle.costPrice,
+                    })
+
+                    // Update tank level
+                    if (nozzle.tankId) {
+                      tankHistory.updateTankFromPumpUsage(
+                        nozzle.tankId,
+                        Number(newIndex) - nozzle.previousIndex
+                      )
+                    }
+                  }
+                }}
                 formatCurrency={formatCurrency}
                 setPumpForm={setPumpForm}
                 setShowPumpModal={setShowPumpModal}
                 setIsEditingPump={setIsEditingPump}
+              />
+            )}
+
+            {/* History View */}
+            {activeTab === "historique" && currentStation && (
+              <HistoryView
+                stationId={currentStation.id}
+                tankNames={Object.fromEntries(
+                  currentStation.tanks.map((t) => [t.id, t.name])
+                )}
+                pumpNumbers={Object.fromEntries(
+                  currentStation.pumps.map((p) => [p.id, p.pumpNumber])
+                )}
+                onDateChange={setSelectedDate}
+                metrics={indexHistory.getDailyMetrics(selectedDate)}
+                tankStatuses={Object.fromEntries(
+                  currentStation.tanks.map((tank) => [
+                    tank.id,
+                    tankHistory.getDailyTankStatus(selectedDate, tank.id) || {
+                      date: selectedDate,
+                      tankId: tank.id,
+                      startLevel: tank.currentLevel,
+                      endLevel: tank.currentLevel,
+                      totalWithdrawn: 0,
+                      totalRefilled: 0,
+                      refills: [],
+                    },
+                  ])
+                )}
               />
             )}
           </>

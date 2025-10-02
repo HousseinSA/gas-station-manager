@@ -23,14 +23,31 @@ interface PumpsProps {
   pumps: Pump[]
   onAddPump: () => void
   onDeletePump: (id: number) => void
-  onUpdateNozzleIndex: (pumpId: number, nozzleId: number, newIndex: string) => void
+  onUpdateNozzleIndex: (
+    pumpId: number,
+    nozzleId: number,
+    newIndex: number
+  ) => void
   formatCurrency: (value: number) => string
-  setPumpForm: (form: any) => void
+  setPumpForm: (form: {
+    pumpNumber: string
+    nozzleCount: string
+    nozzles: Nozzle[]
+  }) => void
   setShowPumpModal: (show: boolean) => void
   setIsEditingPump: (editing: boolean) => void
 }
 
-const Pumps = ({ pumps, onAddPump, onDeletePump, onUpdateNozzleIndex, formatCurrency, setPumpForm, setShowPumpModal, setIsEditingPump }: PumpsProps) => {
+const Pumps = ({
+  pumps,
+  onAddPump,
+  onDeletePump,
+  onUpdateNozzleIndex,
+  formatCurrency,
+  setPumpForm,
+  setShowPumpModal,
+  setIsEditingPump,
+}: PumpsProps) => {
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center mb-4">
@@ -55,14 +72,19 @@ const Pumps = ({ pumps, onAddPump, onDeletePump, onUpdateNozzleIndex, formatCurr
                     setPumpForm({
                       pumpNumber: pump.pumpNumber,
                       nozzleCount: pump.nozzles.length.toString(),
-                      nozzles: pump.nozzles
-                    });
-                    setIsEditingPump(true);
-                    setShowPumpModal(true);
+                      nozzles: pump.nozzles,
+                    })
+                    setIsEditingPump(true)
+                    setShowPumpModal(true)
                   }}
                   className="text-blue-600 hover:text-blue-700"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                   </svg>
                 </button>
@@ -80,14 +102,10 @@ const Pumps = ({ pumps, onAddPump, onDeletePump, onUpdateNozzleIndex, formatCurr
               const profit = revenue - liters * nozzle.costPrice
 
               return (
-                <div
-                  key={nozzle.id}
-                  className="bg-gray-50 rounded p-3 mb-2"
-                >
+                <div key={nozzle.id} className="bg-gray-50 rounded p-3 mb-2">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-medium">
-                      Pistolet {nozzle.nozzleNumber} -{" "}
-                      {nozzle.fuelType}
+                      Pistolet {nozzle.nozzleNumber} - {nozzle.fuelType}
                     </span>
                     <span className="text-sm text-gray-600">
                       Réservoir {nozzle.tankId + 1}
@@ -95,41 +113,42 @@ const Pumps = ({ pumps, onAddPump, onDeletePump, onUpdateNozzleIndex, formatCurr
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm mb-2">
                     <div>
-                      <span className="text-gray-600">
-                        Index précédent:
-                      </span>
+                      <span className="text-gray-600">Index précédent:</span>
                       <span className="ml-2 font-medium">
                         {nozzle.previousIndex}
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-600">
-                        Prix de vente:
-                      </span>
+                      <span className="text-gray-600">Prix de vente:</span>
                       <span className="ml-2 font-medium">
                         {formatCurrency(nozzle.salePrice)} MRU/L
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-600">
-                        Index actuel:
-                      </span>
+                      <span className="text-gray-600">Index actuel:</span>
                       <input
                         type="number"
-                        value={nozzle.currentIndex || ""}
+                        value={nozzle.currentIndex}
                         onChange={(e) => {
-                          const newValue = e.target.value === "" ? 0 : parseInt(e.target.value)
-                          onUpdateNozzleIndex(pump.id, nozzle.id, newValue)
+                          const newValue =
+                            e.target.value === ""
+                              ? nozzle.previousIndex
+                              : parseInt(e.target.value, 10)
+                          if (
+                            !isNaN(newValue) &&
+                            newValue >= nozzle.previousIndex
+                          ) {
+                            onUpdateNozzleIndex(pump.id, nozzle.id, newValue)
+                          }
                         }}
                         className="ml-2 w-28 px-2 py-1 border rounded"
+                        min={nozzle.previousIndex}
                         step="1"
-                        placeholder="0"
+                        placeholder={`Min: ${nozzle.previousIndex}`}
                       />
                     </div>
                     <div>
-                      <span className="text-gray-600">
-                        Prix de coût:
-                      </span>
+                      <span className="text-gray-600">Prix de coût:</span>
                       <span className="ml-2 font-medium">
                         {formatCurrency(nozzle.costPrice)} MRU/L
                       </span>
@@ -139,9 +158,7 @@ const Pumps = ({ pumps, onAddPump, onDeletePump, onUpdateNozzleIndex, formatCurr
                     <div className="grid grid-cols-3 gap-2 font-medium">
                       <div>
                         <span className="text-gray-600">Litres:</span>
-                        <span className="ml-1">
-                          {liters.toFixed(2)} L
-                        </span>
+                        <span className="ml-1">{liters.toFixed(2)} L</span>
                       </div>
                       <div>
                         <span className="text-gray-600">Revenu:</span>
@@ -151,14 +168,10 @@ const Pumps = ({ pumps, onAddPump, onDeletePump, onUpdateNozzleIndex, formatCurr
                       </div>
                       <div
                         className={
-                          profit >= 0
-                            ? "text-green-700"
-                            : "text-red-600"
+                          profit >= 0 ? "text-green-700" : "text-red-600"
                         }
                       >
-                        <span className="text-gray-600">
-                          Bénéfice:
-                        </span>
+                        <span className="text-gray-600">Bénéfice:</span>
                         <span className="ml-1">
                           {formatCurrency(profit)} MRU
                         </span>
@@ -171,9 +184,7 @@ const Pumps = ({ pumps, onAddPump, onDeletePump, onUpdateNozzleIndex, formatCurr
           </div>
         ))}
         {pumps.length === 0 && (
-          <p className="text-center text-gray-500 py-8">
-            Aucune pompe ajoutée
-          </p>
+          <p className="text-center text-gray-500 py-8">Aucune pompe ajoutée</p>
         )}
       </div>
     </div>
