@@ -21,6 +21,7 @@ interface Pump {
 
 interface PumpsProps {
   pumps: Pump[]
+  isAdmin: boolean
   onAddPump: () => void
   onDeletePump: (id: number) => void
   onUpdateNozzleIndex: (
@@ -40,6 +41,7 @@ interface PumpsProps {
 
 const Pumps = ({
   pumps,
+  isAdmin,
   onAddPump,
   onDeletePump,
   onUpdateNozzleIndex,
@@ -52,49 +54,53 @@ const Pumps = ({
     <div className="bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Pompes & Pistolets</h2>
-        <button
-          onClick={onAddPump}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Ajouter Pompe
-        </button>
+        {isAdmin && (
+          <button
+            onClick={onAddPump}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Ajouter Pompe
+          </button>
+        )}
       </div>
       <div className="space-y-4">
         {pumps.map((pump) => (
           <div key={pump.id} className="border rounded-lg p-4">
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-bold">Pompe {pump.pumpNumber}</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    // Set the pump form to the current pump values for editing
-                    setPumpForm({
-                      pumpNumber: pump.pumpNumber,
-                      nozzleCount: pump.nozzles.length.toString(),
-                      nozzles: pump.nozzles,
-                    })
-                    setIsEditingPump(true)
-                    setShowPumpModal(true)
-                  }}
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      // Set the pump form to the current pump values for editing
+                      setPumpForm({
+                        pumpNumber: pump.pumpNumber,
+                        nozzleCount: pump.nozzles.length.toString(),
+                        nozzles: pump.nozzles,
+                      })
+                      setIsEditingPump(true)
+                      setShowPumpModal(true)
+                    }}
+                    className="text-blue-600 hover:text-blue-700"
                   >
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => onDeletePump(pump.id)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => onDeletePump(pump.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
             </div>
             {pump.nozzles.map((nozzle) => {
               const liters = nozzle.currentIndex - nozzle.previousIndex

@@ -33,7 +33,7 @@ const Login = ({ onLogin }: LoginProps) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSubmit()}
-              className="w-full px-4 py-2 border  rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
               placeholder="Entrez le mot de passe"
             />
           </div>

@@ -16,6 +16,7 @@ import HistoryView from "./components/HistoryView"
 import StationModal from "./components/StationModal"
 import TankModal from "./components/TankModal"
 import PumpModal from "./components/PumpModal"
+import UserManagementView from "./components/UserManagementView"
 
 interface PumpForm {
   pumpNumber: string
@@ -24,7 +25,18 @@ interface PumpForm {
 }
 
 const GasStationApp = () => {
-  const { isLoggedIn, login, logout } = useAuth()
+  const {
+    isLoggedIn,
+    isAdmin,
+    users,
+    login,
+    logout,
+    addUser,
+    updateUser,
+    deleteUser,
+    canAccessStation,
+    canViewSection,
+  } = useAuth()
   const {
     stations,
     selectedStation,
@@ -67,9 +79,9 @@ const GasStationApp = () => {
   })
 
   // ───── Handlers ─────
-  const handleLogin = (pwd: string) => {
-    if (!login(pwd)) {
-      alert("Mot de passe incorrect ! Essayez : admin123")
+  const handleLogin = (password: string) => {
+    if (!login(password)) {
+      alert("Mot de passe incorrect ! Pour admin: admin123")
     }
   }
 
@@ -212,13 +224,23 @@ const GasStationApp = () => {
               <h1 className="text-xl font-bold">Gestion Stations-Service</h1>
             </div>
           </div>
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 bg-green-700 px-4 py-2 rounded hover:bg-green-800"
-          >
-            <LogOut className="w-4 h-4" />
-            Déconnexion
-          </button>
+          <div className="flex items-center gap-4">
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab("users")}
+                className="flex items-center gap-2 bg-green-700 px-4 py-2 rounded hover:bg-green-800"
+              >
+                Gérer Utilisateurs
+              </button>
+            )}
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 bg-green-700 px-4 py-2 rounded hover:bg-green-800"
+            >
+              <LogOut className="w-4 h-4" />
+              Déconnexion
+            </button>
+          </div>
         </div>
       </div>
 
@@ -232,27 +254,33 @@ const GasStationApp = () => {
               className="flex-1 min-w-[200px] px-4 py-2 border rounded-lg"
             >
               <option value="">Sélectionner une station</option>
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
+              {stations
+                .filter((s) => isAdmin || canAccessStation(s.id))
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
             </select>
-            <button
-              onClick={() => setShowStationModal(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
-            >
-              <Plus className="w-4 h-4" />
-              Nouvelle Station
-            </button>
-            {selectedStation && (
-              <button
-                onClick={() => deleteStation(selectedStation)}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700"
-              >
-                <Trash2 className="w-4 h-4" />
-                Supprimer Station
-              </button>
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => setShowStationModal(true)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nouvelle Station
+                </button>
+                {selectedStation && (
+                  <button
+                    onClick={() => deleteStation(selectedStation)}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer Station
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -267,19 +295,24 @@ const GasStationApp = () => {
                   { id: "reservoirs", label: "Réservoirs" },
                   { id: "pompes", label: "Pompes" },
                   { id: "historique", label: "Historique" },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-6 py-3 font-medium whitespace-nowrap ${
-                      activeTab === tab.id
-                        ? "border-b-2 border-green-600 text-green-600"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+                  { id: "users", label: "Utilisateurs", adminOnly: true },
+                ]
+                  .filter((tab) =>
+                    tab.adminOnly ? isAdmin : canViewSection(tab.id)
+                  )
+                  .map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-6 py-3 font-medium whitespace-nowrap ${
+                        activeTab === tab.id
+                          ? "border-b-2 border-green-600 text-green-600"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
               </div>
             </div>
 
@@ -299,6 +332,7 @@ const GasStationApp = () => {
             {activeTab === "pompes" && (
               <Pumps
                 pumps={currentStation.pumps}
+                isAdmin={isAdmin}
                 onAddPump={() => {
                   setIsEditingPump(false)
                   setShowPumpModal(true)
@@ -370,6 +404,17 @@ const GasStationApp = () => {
                     },
                   ])
                 )}
+              />
+            )}
+
+            {/* User Management */}
+            {activeTab === "users" && isAdmin && (
+              <UserManagementView
+                users={users}
+                stations={stations}
+                onAddUser={addUser}
+                onDeleteUser={deleteUser}
+                onUpdateUser={updateUser}
               />
             )}
           </>
