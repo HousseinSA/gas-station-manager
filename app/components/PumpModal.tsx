@@ -75,8 +75,9 @@ const PumpModal = ({
           Number(nozzle.tankId) > 0 &&
           Number(nozzle.salePrice) > 0 &&
           Number(nozzle.costPrice) > 0 &&
+          // Require a previous index > 0 to avoid creating a pump with empty 0 indexes
           typeof nozzle.previousIndex === "number" &&
-          nozzle.previousIndex >= 0
+          nozzle.previousIndex > 0
       )
     )
   }
@@ -156,12 +157,41 @@ const PumpModal = ({
                     <button
                       onClick={() => {
                         // remove nozzle from pending list (explicit delete)
-                        setPendingNozzles((prev) =>
-                          prev.filter((_, i) => i !== index)
-                        )
+                        setPendingNozzles((prev) => {
+                          const copy = prev.filter((_, i) => i !== index)
+                          // if removing last nozzle, recreate a default nozzle instead of leaving empty
+                          if (copy.length === 0) {
+                            const defaultNozzle: Nozzle = {
+                              id: Date.now(),
+                              nozzleNumber: 1,
+                              fuelType: "Gasoil",
+                              tankId: currentStation?.tanks[0]?.id || 0,
+                              salePrice: 0,
+                              costPrice: 0,
+                              previousIndex: 0,
+                              currentIndex: 0,
+                              isNew: true,
+                            }
+                            return [defaultNozzle]
+                          }
+                          return copy.map((n, idx) => ({
+                            ...n,
+                            nozzleNumber: idx + 1,
+                          }))
+                        })
                         setPendingCount((c) => Math.max(1, c - 1))
                       }}
-                      className="text-red-600 hover:text-red-700 text-sm"
+                      className={`text-sm ${
+                        pendingNozzles.length <= 1
+                          ? "text-gray-400 cursor-not-allowed"
+                          : "text-red-600 hover:text-red-700"
+                      }`}
+                      disabled={pendingNozzles.length <= 1}
+                      title={
+                        pendingNozzles.length <= 1
+                          ? "Impossible de supprimer: au moins un pistolet requis"
+                          : "Supprimer"
+                      }
                     >
                       Supprimer
                     </button>
@@ -193,7 +223,7 @@ const PumpModal = ({
                       Réservoir
                     </label>
                     <select
-                      value={nozzle.tankId}
+                      value={String(nozzle.tankId)}
                       onChange={(e) => {
                         const v = parseInt(e.target.value)
                         setPendingNozzles((prev) => {
@@ -296,6 +326,12 @@ const PumpModal = ({
                           : ""
                       }
                     />
+                    {nozzle.previousIndex === 0 && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Veuillez renseigner l&apos;index pr&eacute;c&eacute;dent
+                        (doit être &gt; 0)
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

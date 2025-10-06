@@ -67,7 +67,7 @@ const GasStationApp = () => {
     updateTank,
   } = useStations()
   const metrics = useMetrics(currentStation)
-  const indexHistory = useIndexHistory(currentStation?.id || null)
+  const indexHistory = useIndexHistory()
   const tankHistory = useTankHistory(currentStation?.id || null)
 
   // UI states
@@ -121,7 +121,7 @@ const GasStationApp = () => {
     addTank(currentStation.id, {
       name: payload.name,
       capacity: payload.capacity,
-      currentLevel: payload.currentLevel || 0,
+      currentLevel: Math.min(payload.currentLevel || 0, payload.capacity),
     })
     setTankForm({ name: "", capacity: "", currentLevel: "" })
     setShowTankModal(false)
@@ -336,32 +336,46 @@ const GasStationApp = () => {
 
                   const pump = currentStation.pumps.find((p) => p.id === pumpId)
                   if (pump) {
-                    // Update the index
-                    updateNozzleIndex(
+                    // Update the index in hook; updateNozzleIndex returns boolean success
+                    const ok = updateNozzleIndex(
                       currentStation.id,
                       pumpId,
                       nozzleId,
                       newIndex
                     )
 
-                    // Track the index update in history
+                    if (!ok) {
+                      alert(
+                        "Impossible: le réservoir connecté à ce pistolet ne contient pas assez de carburant."
+                      )
+                      return
+                    }
+
+                    // Track the index update in history using the prior nozzle.previousIndex
                     const nozzle = pump.nozzles.find((n) => n.id === nozzleId)
                     if (nozzle) {
+                      const prev =
+                        typeof nozzle.previousIndex === "number"
+                          ? nozzle.previousIndex
+                          : 0
+                      const liters = Math.max(newIndex - prev, 0)
+
                       indexHistory.addIndexUpdate({
                         nozzleId,
                         pumpId,
-                        previousIndex: nozzle.previousIndex,
+                        previousIndex: prev,
                         currentIndex: newIndex,
-                        liters: newIndex - nozzle.previousIndex,
+                        liters,
                         salePrice: nozzle.salePrice,
                         costPrice: nozzle.costPrice,
+                        pumpName: pump.pumpNumber,
+                        nozzleLabel: `Pistolet ${nozzle.nozzleNumber}`,
                       })
 
-                      // Update tank level if needed (only if tankId is truthy and not 0)
-                      if (nozzle.tankId) {
+                      if (nozzle.tankId && liters > 0) {
                         tankHistory.updateTankFromPumpUsage(
                           nozzle.tankId,
-                          newIndex - nozzle.previousIndex
+                          liters
                         )
                       }
                     }
@@ -457,11 +471,14 @@ const GasStationApp = () => {
           editingTankId !== null
             ? (payload) => {
                 if (!currentStation || editingTankId === null) return
-                // Update the tank
+                // Update the tank (clamp currentLevel to capacity)
                 updateTank(currentStation.id, editingTankId, {
                   name: payload.name,
                   capacity: payload.capacity,
-                  currentLevel: payload.currentLevel || 0,
+                  currentLevel: Math.min(
+                    payload.currentLevel || 0,
+                    payload.capacity
+                  ),
                 })
                 setShowTankModal(false)
                 setEditingTankId(null)

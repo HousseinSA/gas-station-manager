@@ -53,6 +53,74 @@ const Pumps = ({
   setIsEditingPump,
   tanks,
 }: PumpsProps) => {
+  // Local subcomponent to manage editable nozzle index draft state
+  const NozzleRow: React.FC<{
+    nozzle: Nozzle
+    pumpId: number
+    tanks: Tank[]
+  }> = ({ nozzle, pumpId, tanks }) => {
+    const tank = tanks?.find((t) => t.id === nozzle.tankId)
+    const isEmpty = tank ? tank.currentLevel <= 0 : false
+    const [draft, setDraft] = React.useState<string>(
+      String(nozzle.currentIndex)
+    )
+
+    React.useEffect(() => {
+      setDraft(String(nozzle.currentIndex))
+    }, [nozzle.currentIndex])
+
+    const commit = () => {
+      const newValue = draft === "" ? nozzle.previousIndex : parseFloat(draft)
+      if (isNaN(newValue)) {
+        setDraft(String(nozzle.currentIndex))
+        return
+      }
+      // Allow decreasing to correct mistakes, but never accept below previousIndex
+      if (newValue < nozzle.previousIndex) {
+        alert("L'index ne peut pas être inférieur à l'index précédent.")
+        setDraft(String(nozzle.currentIndex))
+        return
+      }
+      if (newValue !== nozzle.currentIndex) {
+        onUpdateNozzleIndex(pumpId, nozzle.id, newValue)
+      }
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        ;(e.target as HTMLInputElement).blur()
+      }
+      if (e.key === "Escape") {
+        setDraft(String(nozzle.currentIndex))
+        ;(e.target as HTMLInputElement).blur()
+      }
+    }
+
+    return (
+      <div>
+        <div className="inline-flex items-center ml-2">
+          <input
+            type="number"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={handleKeyDown}
+            className={`w-32 px-3 py-1.5 border rounded text-left focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 ${
+              isEmpty ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
+            min={nozzle.previousIndex}
+            placeholder={`Min: ${nozzle.previousIndex}`}
+            disabled={isEmpty}
+            title={
+              isEmpty
+                ? "Réservoir vide - impossible d'augmenter l'index"
+                : `Min: ${nozzle.previousIndex}`
+            }
+          />
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center mb-4">
@@ -109,8 +177,12 @@ const Pumps = ({
                     </svg>
                   </button>
                   <button
-                    onClick={() => onDeletePump(pump.id)}
+                    onClick={() => {
+                      const msg = `Voulez-vous vraiment supprimer la pompe ${pump.pumpNumber} ? Cette action est irréversible.`
+                      if (confirm(msg)) onDeletePump(pump.id)
+                    }}
                     className="text-red-600 hover:text-red-700"
+                    title={`Supprimer la pompe ${pump.pumpNumber}`}
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -136,15 +208,42 @@ const Pumps = ({
 
               return (
                 <div key={nozzle.id} className="bg-gray-50 rounded p-3 mb-2">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">
-                      Pistolet {nozzle.nozzleNumber} - {nozzle.fuelType}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {tanks?.find((t) => t.id === nozzle.tankId)?.name ||
-                        "Réservoir non assigné"}
-                    </span>
-                  </div>
+                  {(() => {
+                    const tank =
+                      tanks?.find((t) => t.id === nozzle.tankId) || null
+                    const percent = tank
+                      ? (tank.currentLevel / tank.capacity) * 100
+                      : null
+                    let nameClass = "text-sm text-gray-600"
+                    if (percent !== null) {
+                      if (percent <= 10) nameClass = "text-sm text-red-600"
+                      else if (percent <= 20)
+                        nameClass = "text-sm text-yellow-600"
+                      else nameClass = "text-sm text-gray-600"
+                    }
+
+                    return (
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium">
+                          Pistolet {nozzle.nozzleNumber} - {nozzle.fuelType}
+                        </span>
+                        <span
+                          className={nameClass}
+                          title={
+                            tank
+                              ? `${tank.name} — ${tank.currentLevel.toFixed(
+                                  2
+                                )} / ${tank.capacity} L (${percent!.toFixed(
+                                  0
+                                )}%)`
+                              : "Réservoir non assigné"
+                          }
+                        >
+                          {tank?.name || "Réservoir non assigné"}
+                        </span>
+                      </div>
+                    )
+                  })()}
                   <div className="grid grid-cols-2 gap-3 text-sm mb-2">
                     <div>
                       <span className="text-gray-600">Index précédent:</span>
@@ -161,30 +260,10 @@ const Pumps = ({
                     <div>
                       <span className="text-gray-600">Index actuel:</span>
                       <div className="inline-flex items-center ml-2">
-                        <input
-                          type="number"
-                          value={nozzle.currentIndex}
-                          onChange={(e) => {
-                            const newValue =
-                              e.target.value === ""
-                                ? nozzle.previousIndex
-                                : parseFloat(e.target.value)
-                            if (
-                              !isNaN(newValue) &&
-                              newValue >= nozzle.previousIndex
-                            ) {
-                              console.log("[Pumps] input changed", {
-                                pumpId: pump.id,
-                                nozzleId: nozzle.id,
-                                newValue,
-                                previousIndex: nozzle.previousIndex,
-                              })
-                              onUpdateNozzleIndex(pump.id, nozzle.id, newValue)
-                            }
-                          }}
-                          className="w-32 px-3 py-1.5 border rounded text-left focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                          min={nozzle.previousIndex}
-                          placeholder={`Min: ${nozzle.previousIndex}`}
+                        <NozzleRow
+                          nozzle={nozzle}
+                          pumpId={pump.id}
+                          tanks={tanks}
                         />
                       </div>
                     </div>

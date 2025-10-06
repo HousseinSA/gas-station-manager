@@ -11,6 +11,8 @@ interface IndexUpdate {
   liters: number
   salePrice: number
   costPrice: number
+  pumpName?: string
+  nozzleLabel?: string
 }
 
 interface DailyMetrics {
@@ -20,19 +22,21 @@ interface DailyMetrics {
   totalProfit: number
   byPump: {
     [pumpId: number]: {
+      pumpName?: string
       totalLiters: number
       byNozzle: {
         [nozzleId: number]: {
           liters: number
           revenue: number
           profit: number
+          nozzleLabel?: string
         }
       }
     }
   }
 }
 
-export function useIndexHistory(stationId: number | null) {
+export function useIndexHistory() {
   const [indexHistory, setIndexHistory] = React.useState<IndexUpdate[]>([])
   const [dailyMetrics, setDailyMetrics] = React.useState<{
     [date: string]: DailyMetrics
@@ -63,17 +67,19 @@ export function useIndexHistory(stationId: number | null) {
         byPump: {},
       }
 
-      // Update pump metrics
+      // Update pump metrics (preserve pump name if available)
       const pumpMetrics = dayMetrics.byPump[update.pumpId] || {
+        pumpName: update.pumpName,
         totalLiters: 0,
         byNozzle: {},
       }
 
-      // Update nozzle metrics
+      // Update nozzle metrics and attach human-friendly label when available
       pumpMetrics.byNozzle[update.nozzleId] = {
         liters,
         revenue,
         profit,
+        nozzleLabel: update.nozzleLabel,
       }
 
       // Update pump totals

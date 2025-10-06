@@ -1,5 +1,5 @@
 import React from "react"
-import { Calendar, BarChart3, TrendingUp } from "lucide-react"
+import { Calendar } from "lucide-react"
 
 interface DailyMetrics {
   date: string
@@ -8,12 +8,14 @@ interface DailyMetrics {
   totalProfit: number
   byPump: {
     [pumpId: number]: {
+      pumpName?: string
       totalLiters: number
       byNozzle: {
         [nozzleId: number]: {
           liters: number
           revenue: number
           profit: number
+          nozzleLabel?: string
         }
       }
     }
@@ -66,26 +68,19 @@ const DailySummary = ({
         <Calendar className="w-6 h-6" />
         <span>{new Date(date).toLocaleDateString("fr-MR")}</span>
       </div>
-
       {/* Daily Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm text-gray-600">Volume Total</div>
-          <div className="text-2xl font-medium">
-            {formatNumber(metrics.totalLiters)} L
-          </div>
+          <div className="text-2xl font-medium">{formatNumber(metrics.totalLiters)} L</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm text-gray-600">Revenu Total</div>
-          <div className="text-2xl font-medium">
-            {formatNumber(metrics.totalRevenue)} MRU
-          </div>
+          <div className="text-2xl font-medium">{formatNumber(metrics.totalRevenue)} MRU</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm text-gray-600">Bénéfice Total</div>
-          <div className="text-2xl font-medium">
-            {formatNumber(metrics.totalProfit)} MRU
-          </div>
+          <div className="text-2xl font-medium">{formatNumber(metrics.totalProfit)} MRU</div>
         </div>
       </div>
 
@@ -97,9 +92,7 @@ const DailySummary = ({
             <div key={tank.tankId} className="border-b pb-4">
               <div className="flex justify-between mb-2">
                 <span className="font-medium">{tankNames[tank.tankId]}</span>
-                <span className="text-gray-600">
-                  {formatNumber(tank.endLevel)} L restants
-                </span>
+                <span className="text-gray-600">{formatNumber(tank.endLevel)} L restants</span>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                 <div>Niveau initial: {formatNumber(tank.startLevel)} L</div>
@@ -117,19 +110,17 @@ const DailySummary = ({
         <h3 className="text-lg font-medium mb-4">Détails par Pompe</h3>
         <div className="space-y-4">
           {Object.entries(metrics.byPump).map(([pumpId, pump]) => (
-            <div key={pumpId} className="border-b pb-4">
-              <div className="font-medium mb-2">
-                Pompe {pumpNumbers[parseInt(pumpId)]}
-              </div>
-              <div className="text-sm text-gray-600">
-                Volume total: {formatNumber(pump.totalLiters)} L
+            <div key={pumpId} className="border rounded-lg p-3">
+              <div className="flex justify-between items-center mb-2">
+                <div className="font-semibold text-md">Pompe {pump.pumpName || pumpNumbers[parseInt(pumpId)]}</div>
+                <div className="text-sm text-gray-600">Volume total: {formatNumber(pump.totalLiters)} L</div>
               </div>
               <div className="mt-2 space-y-2">
                 {Object.entries(pump.byNozzle).map(([nozzleId, nozzle]) => (
-                  <div key={nozzleId} className="grid grid-cols-3 gap-4">
-                    <div>Pistolet {parseInt(nozzleId) + 1}</div>
-                    <div>{formatNumber(nozzle.liters)} L</div>
-                    <div>{formatNumber(nozzle.revenue)} MRU</div>
+                  <div key={nozzleId} className="grid grid-cols-3 gap-4 items-center py-1">
+                    <div className="font-medium">{nozzle.nozzleLabel || `Pistolet ${parseInt(nozzleId) + 1}`}</div>
+                    <div className="text-gray-700">{formatNumber(nozzle.liters)} L</div>
+                    <div className="text-gray-700">{formatNumber(nozzle.revenue)} MRU</div>
                   </div>
                 ))}
               </div>
