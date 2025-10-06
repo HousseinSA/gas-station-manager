@@ -212,12 +212,17 @@ const PumpModal = ({
                           e.target.value === "" ? 0 : parseFloat(e.target.value)
                         updateNozzleForm(index, "previousIndex", val)
                       }}
+                      // Allow editing for newly created nozzles (isNew).
+                      // Disable only when editing an existing nozzle that has had sales
+                      // (currentIndex !== previousIndex).
                       disabled={
                         isEditing &&
+                        !nozzle.isNew &&
                         nozzle.currentIndex !== nozzle.previousIndex
                       }
                       className={`w-full px-3 py-2 text-sm border rounded-lg ${
                         isEditing &&
+                        !nozzle.isNew &&
                         nozzle.currentIndex !== nozzle.previousIndex
                           ? "bg-gray-100 cursor-not-allowed"
                           : ""
@@ -225,6 +230,7 @@ const PumpModal = ({
                       placeholder="0"
                       title={
                         isEditing &&
+                        !nozzle.isNew &&
                         nozzle.currentIndex !== nozzle.previousIndex
                           ? "Cannot edit: Fuel has been sold from this nozzle"
                           : ""

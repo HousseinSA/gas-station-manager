@@ -1,6 +1,7 @@
 "use client"
 import React from "react"
 import { Plus, Trash2 } from "lucide-react"
+import { Tank } from "../hooks/useStations"
 
 interface Nozzle {
   id: number
@@ -21,6 +22,7 @@ interface Pump {
 
 interface PumpsProps {
   pumps: Pump[]
+  tanks: Tank[]
   isAdmin: boolean
   onAddPump: () => void
   onDeletePump: (id: number) => void
@@ -49,6 +51,7 @@ const Pumps = ({
   setPumpForm,
   setShowPumpModal,
   setIsEditingPump,
+  tanks,
 }: PumpsProps) => {
   return (
     <div className="bg-white rounded-lg shadow p-4">
@@ -103,9 +106,21 @@ const Pumps = ({
               )}
             </div>
             {pump.nozzles.map((nozzle) => {
-              const liters = nozzle.currentIndex - nozzle.previousIndex
-              const revenue = liters * nozzle.salePrice
-              const profit = revenue - liters * nozzle.costPrice
+              const rawLiters =
+                Number(nozzle.currentIndex) - Number(nozzle.previousIndex)
+              const liters = Number.isFinite(rawLiters) ? rawLiters : 0
+              const salePrice = Number(nozzle.salePrice) || 0
+              const costPrice = Number(nozzle.costPrice) || 0
+              const revenue = liters * salePrice
+              const profit = revenue - liters * costPrice
+              // Debug small values to help trace issues in dev console
+              console.log("[Pumps] computed", {
+                pumpId: pump.id,
+                nozzleId: nozzle.id,
+                liters,
+                revenue,
+                profit,
+              })
 
               return (
                 <div key={nozzle.id} className="bg-gray-50 rounded p-3 mb-2">
@@ -114,7 +129,8 @@ const Pumps = ({
                       Pistolet {nozzle.nozzleNumber} - {nozzle.fuelType}
                     </span>
                     <span className="text-sm text-gray-600">
-                      Réservoir {nozzle.tankId + 1}
+                      {tanks?.find((t) => t.id === nozzle.tankId)?.name ||
+                        "Réservoir non assigné"}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm mb-2">
@@ -132,26 +148,33 @@ const Pumps = ({
                     </div>
                     <div>
                       <span className="text-gray-600">Index actuel:</span>
-                      <input
-                        type="number"
-                        value={nozzle.currentIndex}
-                        onChange={(e) => {
-                          const newValue =
-                            e.target.value === ""
-                              ? nozzle.previousIndex
-                              : parseFloat(e.target.value)
-                          if (
-                            !isNaN(newValue) &&
-                            newValue >= nozzle.previousIndex
-                          ) {
-                            onUpdateNozzleIndex(pump.id, nozzle.id, newValue)
-                          }
-                        }}
-                        className="ml-2 w-28 px-2 py-1 border rounded"
-                        min={nozzle.previousIndex}
-                        step="1"
-                        placeholder={`Min: ${nozzle.previousIndex}`}
-                      />
+                      <div className="inline-flex items-center ml-2">
+                        <input
+                          type="number"
+                          value={nozzle.currentIndex}
+                          onChange={(e) => {
+                            const newValue =
+                              e.target.value === ""
+                                ? nozzle.previousIndex
+                                : parseFloat(e.target.value)
+                            if (
+                              !isNaN(newValue) &&
+                              newValue >= nozzle.previousIndex
+                            ) {
+                              console.log("[Pumps] input changed", {
+                                pumpId: pump.id,
+                                nozzleId: nozzle.id,
+                                newValue,
+                                previousIndex: nozzle.previousIndex,
+                              })
+                              onUpdateNozzleIndex(pump.id, nozzle.id, newValue)
+                            }
+                          }}
+                          className="w-32 px-3 py-1.5 border rounded text-left focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                          min={nozzle.previousIndex}
+                          placeholder={`Min: ${nozzle.previousIndex}`}
+                        />
+                      </div>
                     </div>
                     <div>
                       <span className="text-gray-600">Prix de coût:</span>

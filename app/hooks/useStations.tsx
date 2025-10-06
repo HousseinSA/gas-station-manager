@@ -27,13 +27,13 @@ export interface Nozzle {
   costPrice: number
   previousIndex: number
   currentIndex: number
+  isNew?: boolean
 }
 
 export function useStations() {
   const [stations, setStations] = useState<Station[]>([])
   const [selectedStation, setSelectedStation] = useState<number | null>(null)
 
-  // Load initial demo station
   useEffect(() => {
     if (stations.length === 0) {
       const demo: Station = {
@@ -70,7 +70,7 @@ export function useStations() {
       setStations([demo])
       setSelectedStation(1)
     }
-  }, [])
+  }, [stations.length])
 
   // ───── Station ─────
   const addStation = (name: string) => {
@@ -106,12 +106,36 @@ export function useStations() {
   }
 
   const deleteTank = (stationId: number, tankId: number) => {
+    const station = stations.find((s) => s.id === stationId)
+    if (!station) return
+    const connectedNozzles = station.pumps.reduce(
+      (count, pump) =>
+        count + pump.nozzles.filter((n) => n.tankId === tankId).length,
+      0
+    )
+
+    if (connectedNozzles > 0) {
+      const confirmMessage = `Attention! La suppression de ce réservoir va supprimer ${connectedNozzles} pistolet(s) connecté(s). Cette action est irréversible. Voulez-vous continuer?`
+      if (!confirm(confirmMessage)) {
+        return
+      }
+    }
     setStations(
-      stations.map((s) =>
-        s.id === stationId
-          ? { ...s, tanks: s.tanks.filter((t) => t.id !== tankId) }
-          : s
-      )
+      stations.map((s) => {
+        if (s.id !== stationId) return s
+
+        return {
+          ...s,
+          tanks: s.tanks.filter((t) => t.id !== tankId),
+          // Remove pumps that have no nozzles left after filtering
+          pumps: s.pumps
+            .map((pump) => ({
+              ...pump,
+              nozzles: pump.nozzles.filter((n) => n.tankId !== tankId),
+            }))
+            .filter((pump) => pump.nozzles.length > 0),
+        }
+      })
     )
   }
 
@@ -136,7 +160,11 @@ export function useStations() {
     )
   }
 
-  const updatePump = (stationId: number, pumpId: number, updatedPump: Omit<Pump, "id">) => {
+  const updatePump = (
+    stationId: number,
+    pumpId: number,
+    updatedPump: Omit<Pump, "id">
+  ) => {
     setStations(
       stations.map((s) =>
         s.id === stationId
@@ -158,24 +186,52 @@ export function useStations() {
     nozzleId: number,
     newIndex: number
   ) => {
-    setStations(
-      stations.map((s) =>
-        s.id === stationId
-          ? {
-              ...s,
-              pumps: s.pumps.map((p) =>
-                p.id === pumpId
-                  ? {
-                      ...p,
-                      nozzles: p.nozzles.map((n) =>
-                        n.id === nozzleId ? { ...n, currentIndex: newIndex } : n
-                      ),
-                    }
-                  : p
-              ),
-            }
-          : s
-      )
+    console.log(`[useStations] updateNozzleIndex called`, {
+      stationId,
+      pumpId,
+      nozzleId,
+      newIndex,
+    })
+
+    setStations((prevStations) =>
+      prevStations.map((s) => {
+        if (s.id !== stationId) return s
+
+        // We'll update pumps and possibly tanks for this station
+        let updatedTanks = s.tanks
+
+        const updatedPumps = s.pumps.map((p) => {
+          if (p.id !== pumpId) return p
+
+          return {
+            ...p,
+            nozzles: p.nozzles.map((n) => {
+              if (n.id !== nozzleId) return n
+
+              const litersDispensed = newIndex - n.previousIndex
+
+              // If there's a connected tank, subtract the dispensed liters (clamped to 0)
+              if (n.tankId) {
+                updatedTanks = updatedTanks.map((t) =>
+                  t.id === n.tankId
+                    ? {
+                        ...t,
+                        currentLevel: Math.max(
+                          t.currentLevel - litersDispensed,
+                          0
+                        ),
+                      }
+                    : t
+                )
+              }
+
+              return { ...n, currentIndex: newIndex }
+            }),
+          }
+        })
+
+        return { ...s, pumps: updatedPumps, tanks: updatedTanks }
+      })
     )
   }
 

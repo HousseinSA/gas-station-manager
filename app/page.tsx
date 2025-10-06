@@ -24,6 +24,20 @@ interface PumpForm {
   nozzles: Nozzle[]
 }
 
+// Build a proper Nozzle object from a partial input (used to sanitize form objects)
+function normalizeNozzle(n: Partial<Nozzle>): Nozzle {
+  return {
+    id: Number(n.id) || Date.now(),
+    nozzleNumber: Number(n.nozzleNumber) || 1,
+    fuelType: n.fuelType || "Gasoil",
+    tankId: Number(n.tankId) || 0,
+    salePrice: Number(n.salePrice) || 0,
+    costPrice: Number(n.costPrice) || 0,
+    previousIndex: Number(n.previousIndex) || 0,
+    currentIndex: Number(n.currentIndex) || Number(n.previousIndex) || 0,
+  }
+}
+
 const GasStationApp = () => {
   const {
     isLoggedIn,
@@ -135,17 +149,14 @@ const GasStationApp = () => {
       if (existingPump) {
         updatePump(currentStation.id, existingPump.id, {
           pumpNumber: pumpForm.pumpNumber,
-          nozzles: pumpForm.nozzles.map((nozzle) => ({
-            ...nozzle,
-            id: nozzle.id,
-          })),
+          nozzles: pumpForm.nozzles.map((nozzle) => normalizeNozzle(nozzle)),
         })
       }
     } else {
-      const nozzlesWithCorrectIndex = pumpForm.nozzles.map((nozzle) => ({
-        ...nozzle,
-        currentIndex: nozzle.previousIndex,
-      }))
+      const nozzlesWithCorrectIndex = pumpForm.nozzles.map((nozzle) => {
+        const normalized = normalizeNozzle(nozzle)
+        return { ...normalized, currentIndex: normalized.previousIndex }
+      })
       addPump(currentStation.id, {
         pumpNumber: pumpForm.pumpNumber,
         nozzles: nozzlesWithCorrectIndex,
@@ -167,9 +178,8 @@ const GasStationApp = () => {
 
   const prepareNozzles = (count: number) => {
     if (count < 1) count = 1
-    if (count > 4) count = 4 // Limit to maximum 4 nozzles per pump
+    if (count > 4) count = 4
 
-    // Only create nozzles if count is different from current nozzles length
     if (pumpForm.nozzles.length === count) return
 
     const newNozzles: Nozzle[] = []
@@ -181,12 +191,11 @@ const GasStationApp = () => {
         newNozzles.push(pumpForm.nozzles[i])
       } else {
         // Create new nozzle with proper initialization
-        const defaultTankId = currentStation?.tanks.find((t) => t.id)?.id || 0
         newNozzles.push({
           id: Date.now() + i,
           nozzleNumber: i + 1,
           fuelType: "Gasoil",
-          tankId: defaultTankId,
+          tankId: currentStation?.tanks[0]?.id || 0,
           salePrice: 0,
           costPrice: 0,
           previousIndex: 0,
@@ -332,6 +341,7 @@ const GasStationApp = () => {
             {activeTab === "pompes" && (
               <Pumps
                 pumps={currentStation.pumps}
+                tanks={currentStation.tanks}
                 isAdmin={isAdmin}
                 onAddPump={() => {
                   setIsEditingPump(false)
@@ -339,35 +349,43 @@ const GasStationApp = () => {
                 }}
                 onDeletePump={(pumpId) => deletePump(currentStation.id, pumpId)}
                 onUpdateNozzleIndex={(pumpId, nozzleId, newIndex) => {
-                  const pump = currentStation.pumps.find((p) => p.id === pumpId)
-                  const nozzle = pump?.nozzles[nozzleId]
+                  console.log("[page] onUpdateNozzleIndex wrapper called", {
+                    pumpId,
+                    nozzleId,
+                    newIndex,
+                    stationId: currentStation.id,
+                  })
 
-                  if (pump && nozzle) {
+                  const pump = currentStation.pumps.find((p) => p.id === pumpId)
+                  if (pump) {
                     // Update the index
                     updateNozzleIndex(
                       currentStation.id,
                       pumpId,
                       nozzleId,
-                      Number(newIndex)
+                      newIndex
                     )
 
                     // Track the index update in history
-                    indexHistory.addIndexUpdate({
-                      nozzleId,
-                      pumpId,
-                      previousIndex: nozzle.previousIndex,
-                      currentIndex: Number(newIndex),
-                      liters: Number(newIndex) - nozzle.previousIndex,
-                      salePrice: nozzle.salePrice,
-                      costPrice: nozzle.costPrice,
-                    })
+                    const nozzle = pump.nozzles.find((n) => n.id === nozzleId)
+                    if (nozzle) {
+                      indexHistory.addIndexUpdate({
+                        nozzleId,
+                        pumpId,
+                        previousIndex: nozzle.previousIndex,
+                        currentIndex: newIndex,
+                        liters: newIndex - nozzle.previousIndex,
+                        salePrice: nozzle.salePrice,
+                        costPrice: nozzle.costPrice,
+                      })
 
-                    // Update tank level
-                    if (nozzle.tankId) {
-                      tankHistory.updateTankFromPumpUsage(
-                        nozzle.tankId,
-                        Number(newIndex) - nozzle.previousIndex
-                      )
+                      // Update tank level if needed (only if tankId is truthy and not 0)
+                      if (nozzle.tankId) {
+                        tankHistory.updateTankFromPumpUsage(
+                          nozzle.tankId,
+                          newIndex - nozzle.previousIndex
+                        )
+                      }
                     }
                   }
                 }}
