@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 
 export interface Station {
   id: number
@@ -34,43 +34,7 @@ export function useStations() {
   const [stations, setStations] = useState<Station[]>([])
   const [selectedStation, setSelectedStation] = useState<number | null>(null)
 
-  useEffect(() => {
-    if (stations.length === 0) {
-      const demo: Station = {
-        id: 1,
-        name: "Station Principale",
-        tanks: [
-          {
-            id: 1,
-            name: "Réservoir Gasoil",
-            capacity: 10000,
-            currentLevel: 8000,
-            dateAdded: new Date().toISOString(),
-          },
-        ],
-        pumps: [
-          {
-            id: 1,
-            pumpNumber: "1",
-            nozzles: [
-              {
-                id: 1,
-                nozzleNumber: 1,
-                fuelType: "Gasoil",
-                tankId: 0,
-                salePrice: 550,
-                costPrice: 480,
-                previousIndex: 0,
-                currentIndex: 0,
-              },
-            ],
-          },
-        ],
-      }
-      setStations([demo])
-      setSelectedStation(1)
-    }
-  }, [stations.length])
+  // Intentionally start with empty stations so user can add their own data
 
   // ───── Station ─────
   const addStation = (name: string) => {
@@ -179,6 +143,25 @@ export function useStations() {
     )
   }
 
+  const updateTank = (
+    stationId: number,
+    tankId: number,
+    updatedTank: Omit<Tank, "id" | "dateAdded">
+  ) => {
+    setStations((prev) =>
+      prev.map((s) =>
+        s.id === stationId
+          ? {
+              ...s,
+              tanks: s.tanks.map((t) =>
+                t.id === tankId ? { ...t, ...updatedTank } : t
+              ),
+            }
+          : s
+      )
+    )
+  }
+
   // ───── Nozzle index ─────
   const updateNozzleIndex = (
     stationId: number,
@@ -250,5 +233,6 @@ export function useStations() {
     deletePump,
     updatePump,
     updateNozzleIndex,
+    updateTank,
   }
 }

@@ -13,7 +13,18 @@ interface TankModalProps {
   onClose: () => void
   tankForm: TankForm
   setTankForm: (form: TankForm) => void
-  onAddTank: () => void
+  // onAddTank receives the new tank payload
+  onAddTank: (tank: {
+    name: string
+    capacity: number
+    currentLevel: number
+  }) => void
+  // onSaveEdit receives the updated tank payload
+  onSaveEdit?: (tank: {
+    name: string
+    capacity: number
+    currentLevel: number
+  }) => void
 }
 
 const TankModal = ({
@@ -22,6 +33,7 @@ const TankModal = ({
   tankForm,
   setTankForm,
   onAddTank,
+  onSaveEdit,
 }: TankModalProps) => {
   if (!show) return null
 
@@ -76,10 +88,30 @@ const TankModal = ({
             Annuler
           </button>
           <button
-            onClick={onAddTank}
+            onClick={() => {
+              const payload = {
+                name: tankForm.name.trim(),
+                capacity: Number(tankForm.capacity) || 0,
+                currentLevel: Number(tankForm.currentLevel) || 0,
+              }
+              console.log("[TankModal] save clicked", {
+                isEdit: !!onSaveEdit,
+                payload,
+              })
+              try {
+                if (onSaveEdit) {
+                  onSaveEdit(payload)
+                } else {
+                  onAddTank(payload)
+                }
+              } finally {
+                // close modal locally after invoking handler
+                onClose()
+              }
+            }}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            Ajouter
+            {onSaveEdit ? "Enregistrer" : "Ajouter"}
           </button>
         </div>
       </div>

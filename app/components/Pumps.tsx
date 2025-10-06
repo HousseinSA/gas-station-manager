@@ -58,13 +58,25 @@ const Pumps = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Pompes & Pistolets</h2>
         {isAdmin && (
-          <button
-            onClick={onAddPump}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Ajouter Pompe
-          </button>
+          <div>
+            <button
+              onClick={() => (tanks && tanks.length > 0 ? onAddPump() : null)}
+              disabled={!(tanks && tanks.length > 0)}
+              title={
+                !(tanks && tanks.length > 0)
+                  ? "Ajoutez un réservoir avant d'ajouter une pompe"
+                  : ""
+              }
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                tanks && tanks.length > 0
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-300 text-gray-600 cursor-not-allowed"
+              }`}
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter Pompe
+            </button>
+          </div>
         )}
       </div>
       <div className="space-y-4">

@@ -14,9 +14,10 @@ interface TanksProps {
   tanks: Tank[]
   onAddTank: () => void
   onDeleteTank: (id: number) => void
+  onEditTank?: (id: number) => void
 }
 
-const Tanks = ({ tanks, onAddTank, onDeleteTank }: TanksProps) => {
+const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center mb-4">
@@ -34,12 +35,22 @@ const Tanks = ({ tanks, onAddTank, onDeleteTank }: TanksProps) => {
           <div key={tank.id} className="border rounded-lg p-4">
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-bold">{tank.name}</h3>
-              <button
-                onClick={() => onDeleteTank(tank.id)}
-                className="text-red-600 hover:text-red-700"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+              <div className="flex gap-2">
+                {onEditTank && (
+                  <button
+                    onClick={() => onEditTank(tank.id)}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    Éditer
+                  </button>
+                )}
+                <button
+                  onClick={() => onDeleteTank(tank.id)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -51,13 +62,11 @@ const Tanks = ({ tanks, onAddTank, onDeleteTank }: TanksProps) => {
                 {tank.currentLevel.toFixed(2)} L
               </div>
               <div>
-                <span className="text-gray-600">Date d'ajout:</span>{" "}
+                <span className="text-gray-600">Date d&apos;ajout:</span>{" "}
                 {new Date(tank.dateAdded).toLocaleDateString("fr-FR")}
               </div>
               <div>
-                <span className="text-gray-600">
-                  Taux de remplissage:
-                </span>{" "}
+                <span className="text-gray-600">Taux de remplissage:</span>{" "}
                 {((tank.currentLevel / tank.capacity) * 100).toFixed(1)}%
               </div>
             </div>

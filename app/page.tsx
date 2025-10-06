@@ -64,6 +64,7 @@ const GasStationApp = () => {
     deletePump,
     updatePump,
     updateNozzleIndex,
+    updateTank,
   } = useStations()
   const metrics = useMetrics(currentStation)
   const indexHistory = useIndexHistory(currentStation?.id || null)
@@ -78,6 +79,7 @@ const GasStationApp = () => {
   const [showTankModal, setShowTankModal] = useState(false)
   const [showPumpModal, setShowPumpModal] = useState(false)
   const [isEditingPump, setIsEditingPump] = useState(false)
+  const [editingTankId, setEditingTankId] = useState<number | null>(null)
 
   // Temporary form states
   const [stationForm, setStationForm] = useState({ name: "" })
@@ -106,12 +108,20 @@ const GasStationApp = () => {
     setShowStationModal(false)
   }
 
-  const handleAddTank = () => {
-    if (!currentStation || !tankForm.name.trim() || !tankForm.capacity) return
+  const handleAddTank = (payload: {
+    name: string
+    capacity: number
+    currentLevel: number
+  }) => {
+    console.log("[page] handleAddTank called", {
+      currentStationId: currentStation?.id,
+      payload,
+    })
+    if (!currentStation || !payload.name.trim() || !payload.capacity) return
     addTank(currentStation.id, {
-      name: tankForm.name,
-      capacity: parseFloat(tankForm.capacity),
-      currentLevel: parseFloat(tankForm.currentLevel || "0"),
+      name: payload.name,
+      capacity: payload.capacity,
+      currentLevel: payload.currentLevel || 0,
     })
     setTankForm({ name: "", capacity: "", currentLevel: "" })
     setShowTankModal(false)
@@ -166,51 +176,7 @@ const GasStationApp = () => {
     setShowPumpModal(false)
   }
 
-  const updateNozzleForm = (
-    index: number,
-    field: keyof Nozzle,
-    value: Nozzle[keyof Nozzle]
-  ) => {
-    const updatedNozzles = [...pumpForm.nozzles]
-    updatedNozzles[index] = { ...updatedNozzles[index], [field]: value }
-    setPumpForm({ ...pumpForm, nozzles: updatedNozzles })
-  }
-
-  const prepareNozzles = (count: number) => {
-    if (count < 1) count = 1
-    if (count > 4) count = 4
-
-    if (pumpForm.nozzles.length === count) return
-
-    const newNozzles: Nozzle[] = []
-
-    // Create the exact number of nozzles needed
-    for (let i = 0; i < count; i++) {
-      // If we already have this nozzle, use it
-      if (i < pumpForm.nozzles.length) {
-        newNozzles.push(pumpForm.nozzles[i])
-      } else {
-        // Create new nozzle with proper initialization
-        newNozzles.push({
-          id: Date.now() + i,
-          nozzleNumber: i + 1,
-          fuelType: "Gasoil",
-          tankId: currentStation?.tanks[0]?.id || 0,
-          salePrice: 0,
-          costPrice: 0,
-          previousIndex: 0,
-          currentIndex: 0,
-        })
-      }
-    }
-
-    // Update both nozzles and nozzleCount to ensure consistency
-    setPumpForm({
-      ...pumpForm,
-      nozzles: newNozzles,
-      nozzleCount: count.toString(),
-    })
-  }
+  // Pump modal now manages nozzle edits locally; parent persists on save
 
   // Format number with thousand separators for currency
   const formatCurrency = (value: number): string => {
@@ -334,6 +300,18 @@ const GasStationApp = () => {
                 tanks={currentStation.tanks}
                 onAddTank={() => setShowTankModal(true)}
                 onDeleteTank={(tankId) => deleteTank(currentStation.id, tankId)}
+                onEditTank={(tankId) => {
+                  const tank = currentStation.tanks.find((t) => t.id === tankId)
+                  if (tank) {
+                    setEditingTankId(tankId)
+                    setTankForm({
+                      name: tank.name,
+                      capacity: String(tank.capacity),
+                      currentLevel: String(tank.currentLevel),
+                    })
+                    setShowTankModal(true)
+                  }
+                }}
               />
             )}
 
@@ -467,10 +445,30 @@ const GasStationApp = () => {
       {/* Tank Modal */}
       <TankModal
         show={showTankModal}
-        onClose={() => setShowTankModal(false)}
+        onClose={() => {
+          setShowTankModal(false)
+          setEditingTankId(null)
+          setTankForm({ name: "", capacity: "", currentLevel: "" })
+        }}
         tankForm={tankForm}
         setTankForm={setTankForm}
         onAddTank={handleAddTank}
+        onSaveEdit={
+          editingTankId !== null
+            ? (payload) => {
+                if (!currentStation || editingTankId === null) return
+                // Update the tank
+                updateTank(currentStation.id, editingTankId, {
+                  name: payload.name,
+                  capacity: payload.capacity,
+                  currentLevel: payload.currentLevel || 0,
+                })
+                setShowTankModal(false)
+                setEditingTankId(null)
+                setTankForm({ name: "", capacity: "", currentLevel: "" })
+              }
+            : undefined
+        }
       />
 
       <PumpModal
@@ -483,8 +481,32 @@ const GasStationApp = () => {
         pumpForm={pumpForm}
         setPumpForm={setPumpForm}
         onAddPump={handleAddPump}
-        updateNozzleForm={updateNozzleForm}
-        prepareNozzles={prepareNozzles}
+        onSavePump={(data) => {
+          if (!currentStation) return
+          if (isEditingPump) {
+            // find existing pump by first nozzle id if possible
+            const existingPump = currentStation.pumps.find(
+              (p) => p.nozzles[0]?.id === pumpForm.nozzles[0]?.id
+            )
+            if (existingPump) {
+              updatePump(currentStation.id, existingPump.id, {
+                pumpNumber: data.pumpNumber,
+                nozzles: data.nozzles.map((n) => normalizeNozzle(n)),
+              })
+            }
+          } else {
+            addPump(currentStation.id, {
+              pumpNumber: data.pumpNumber,
+              nozzles: data.nozzles.map((n) => ({
+                ...normalizeNozzle(n),
+                currentIndex: normalizeNozzle(n).previousIndex,
+              })),
+            })
+          }
+          setShowPumpModal(false)
+          setIsEditingPump(false)
+          setPumpForm({ pumpNumber: "", nozzleCount: "1", nozzles: [] })
+        }}
         currentStation={currentStation}
         isEditing={isEditingPump}
       />
