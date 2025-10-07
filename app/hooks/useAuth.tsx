@@ -43,6 +43,20 @@ export function useAuth() {
 
   const addUser = (userData: Omit<User, "id" | "isAdmin">) => {
     if (!currentUser?.isAdmin) return
+    // Prevent creating a user with the same password as admin
+    if (userData.password === ADMIN_USER.password) {
+      alert(
+        "Impossible: le mot de passe ne peut pas être identique au mot de passe admin."
+      )
+      return
+    }
+    // Require at least one allowed station when creating a user
+    if (!userData.allowedStations || userData.allowedStations.length === 0) {
+      alert(
+        "Impossible: l'utilisateur doit avoir au moins une station accessible."
+      )
+      return
+    }
     const newUser = {
       ...userData,
       id: Date.now(),
@@ -56,6 +70,24 @@ export function useAuth() {
     updates: Partial<Omit<User, "id" | "isAdmin">>
   ) => {
     if (!currentUser?.isAdmin) return
+    // Prevent updating user to use admin password
+    if (updates.password && updates.password === ADMIN_USER.password) {
+      alert(
+        "Impossible: le mot de passe ne peut pas être identique au mot de passe admin."
+      )
+      return
+    }
+    // If allowedStations is being updated, require at least one station
+    if (
+      updates.allowedStations &&
+      Array.isArray(updates.allowedStations) &&
+      updates.allowedStations.length === 0
+    ) {
+      alert(
+        "Impossible: l'utilisateur doit avoir au moins une station accessible."
+      )
+      return
+    }
     setUsers(
       users.map((user) => (user.id === userId ? { ...user, ...updates } : user))
     )
@@ -88,6 +120,8 @@ export function useAuth() {
     currentUser,
     isLoggedIn: !!currentUser,
     isAdmin: currentUser?.isAdmin ?? false,
+    // main admin is the special built-in admin user (ADMIN_USER)
+    isMainAdmin: currentUser?.id === ADMIN_USER.id,
     users: getUsers(),
     login,
     logout,

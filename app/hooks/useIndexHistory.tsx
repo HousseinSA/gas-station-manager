@@ -75,14 +75,26 @@ export function useIndexHistory() {
       }
 
       // Update nozzle metrics and attach human-friendly label when available
-      pumpMetrics.byNozzle[update.nozzleId] = {
-        liters,
-        revenue,
-        profit,
-        nozzleLabel: update.nozzleLabel,
+      // If the same nozzle has multiple updates the same day, accumulate values
+      const existingNozzle = pumpMetrics.byNozzle[update.nozzleId]
+      if (existingNozzle) {
+        existingNozzle.liters += liters
+        existingNozzle.revenue += revenue
+        existingNozzle.profit += profit
+        // keep label if present, prefer existing
+        existingNozzle.nozzleLabel =
+          existingNozzle.nozzleLabel || update.nozzleLabel
+        pumpMetrics.byNozzle[update.nozzleId] = existingNozzle
+      } else {
+        pumpMetrics.byNozzle[update.nozzleId] = {
+          liters,
+          revenue,
+          profit,
+          nozzleLabel: update.nozzleLabel,
+        }
       }
 
-      // Update pump totals
+      // Update pump totals (recalculate from nozzle aggregates)
       pumpMetrics.totalLiters = Object.values(pumpMetrics.byNozzle).reduce(
         (sum, n) => sum + n.liters,
         0

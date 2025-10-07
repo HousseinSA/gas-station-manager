@@ -103,6 +103,11 @@ const GasStationApp = () => {
 
   const handleAddStation = () => {
     if (!stationForm.name.trim()) return
+    // Only admins can create stations
+    if (!isAdmin) {
+      alert("Vous n'êtes pas autorisé à créer une station.")
+      return
+    }
     addStation(stationForm.name)
     setStationForm({ name: "" })
     setShowStationModal(false)
@@ -220,13 +225,12 @@ const GasStationApp = () => {
       </div>
 
       <div className="container mx-auto p-4">
-        {/* Station Selector */}
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <div className="flex gap-4 items-center flex-wrap">
             <select
               value={selectedStation || ""}
               onChange={(e) => setSelectedStation(Number(e.target.value))}
-              className="flex-1 min-w-[200px] px-4 py-2 border rounded-lg"
+              className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 "
             >
               <option value="">Sélectionner une station</option>
               {stations
@@ -239,16 +243,51 @@ const GasStationApp = () => {
             </select>
             {isAdmin && (
               <>
-                <button
-                  onClick={() => setShowStationModal(true)}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
-                >
-                  <Plus className="w-4 h-4" />
-                  Nouvelle Station
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setStationForm({ name: "" })
+                      setShowStationModal(true)
+                    }}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Nouvelle Station
+                  </button>
+                )}
                 {selectedStation && (
                   <button
-                    onClick={() => deleteStation(selectedStation)}
+                    onClick={() => {
+                      const stationIdToDelete = selectedStation
+                      const usersWithAccess = users.filter((u) =>
+                        u.allowedStations.includes(stationIdToDelete)
+                      )
+
+                      if (usersWithAccess.length > 0) {
+                        // Remove non-admin users who only had this station
+                        usersWithAccess.forEach((user) => {
+                          // If user is admin (shouldn't be in users list), skip
+                          // remove station from their allowedStations
+                          const remaining = user.allowedStations.filter(
+                            (s) => s !== stationIdToDelete
+                          )
+                          if (remaining.length === 0) {
+                            // delete the user (they no longer have stations)
+                            deleteUser(user.id)
+                          } else {
+                            // otherwise update their allowed stations
+                            updateUser(user.id, { allowedStations: remaining })
+                          }
+                        })
+                      }
+                      if (
+                        confirm(
+                          "Supprimer cette station? Cette action est irréversible."
+                        )
+                      ) {
+                        deleteStation(stationIdToDelete)
+                      }
+                    }}
                     className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -360,6 +399,34 @@ const GasStationApp = () => {
                           : 0
                       const liters = Math.max(newIndex - prev, 0)
 
+                      // Ensure tank history has a seed entry for this tank so daily
+                      // status can compute withdrawals properly. If no tank history
+                      // exists we add a manual update using the current tank level
+                      // (from station state) as previous/current so subsequent
+                      // pump-usage updates subtract from it.
+                      if (nozzle.tankId) {
+                        const tank = currentStation.tanks.find(
+                          (t) => t.id === nozzle.tankId
+                        )
+                        const last = tankHistory.tankHistory
+                          .filter((h) => h.tankId === nozzle.tankId)
+                          .sort(
+                            (a, b) =>
+                              new Date(b.timestamp).getTime() -
+                              new Date(a.timestamp).getTime()
+                          )[0]
+                        if (!last && tank) {
+                          // seed with a no-op manual update reflecting the current level
+                          tankHistory.addTankUpdate({
+                            tankId: tank.id,
+                            previousLevel: tank.currentLevel,
+                            currentLevel: tank.currentLevel,
+                            change: 0,
+                            reason: "manual-update",
+                          })
+                        }
+                      }
+
                       indexHistory.addIndexUpdate({
                         nozzleId,
                         pumpId,
@@ -438,7 +505,10 @@ const GasStationApp = () => {
               Créez une nouvelle station pour commencer
             </p>
             <button
-              onClick={() => setShowStationModal(true)}
+              onClick={() => {
+                setStationForm({ name: "" })
+                setShowStationModal(true)
+              }}
               className="bg-green-600 text-white px-6  py-2 rounded-lg hover:bg-green-700"
             >
               Créer Station
@@ -472,13 +542,30 @@ const GasStationApp = () => {
             ? (payload) => {
                 if (!currentStation || editingTankId === null) return
                 // Update the tank (clamp currentLevel to capacity)
+                // If currentLevel increases compared to the stored tank, record a refill event
+                const existingTank = currentStation.tanks.find(
+                  (t) => t.id === editingTankId
+                )
+                const newLevel = Math.min(
+                  payload.currentLevel || 0,
+                  payload.capacity
+                )
+                if (existingTank && newLevel > existingTank.currentLevel) {
+                  const refillAmount = newLevel - existingTank.currentLevel
+                  // record refill in tank history so Total rempli increases
+                  tankHistory.addTankUpdate({
+                    tankId: existingTank.id,
+                    previousLevel: existingTank.currentLevel,
+                    currentLevel: newLevel,
+                    change: refillAmount,
+                    reason: "refill",
+                  })
+                }
+
                 updateTank(currentStation.id, editingTankId, {
                   name: payload.name,
                   capacity: payload.capacity,
-                  currentLevel: Math.min(
-                    payload.currentLevel || 0,
-                    payload.capacity
-                  ),
+                  currentLevel: newLevel,
                 })
                 setShowTankModal(false)
                 setEditingTankId(null)

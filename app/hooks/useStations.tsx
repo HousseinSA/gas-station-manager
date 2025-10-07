@@ -218,7 +218,8 @@ export function useStations() {
               if (n.id !== nozzleId) return n
 
               // Calculate liters using the stored previousIndex
-              const prev = typeof n.previousIndex === "number" ? n.previousIndex : 0
+              const prev =
+                typeof n.previousIndex === "number" ? n.previousIndex : 0
               const litersDispensed = Math.max(newIndex - prev, 0)
 
               // If there's a connected tank and liters is positive, subtract the dispensed liters (clamped to 0)
@@ -227,7 +228,10 @@ export function useStations() {
                   t.id === n.tankId
                     ? {
                         ...t,
-                        currentLevel: Math.max(t.currentLevel - litersDispensed, 0),
+                        currentLevel: Math.max(
+                          t.currentLevel - litersDispensed,
+                          0
+                        ),
                       }
                     : t
                 )

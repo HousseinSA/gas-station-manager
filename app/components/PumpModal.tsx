@@ -326,12 +326,6 @@ const PumpModal = ({
                           : ""
                       }
                     />
-                    {nozzle.previousIndex === 0 && (
-                      <p className="text-xs text-red-600 mt-1">
-                        Veuillez renseigner l&apos;index pr&eacute;c&eacute;dent
-                        (doit être &gt; 0)
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
