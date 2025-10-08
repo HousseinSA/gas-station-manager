@@ -56,32 +56,36 @@ export function useTankHistory(stationId: number | null) {
       if (update.reason === "pump-usage") {
         // Get all updates for this tank on this day up to this point
         const todaysUpdates = tankHistory
-          .filter(h => 
-            h.tankId === update.tankId && 
-            new Date(h.timestamp).toISOString().split('T')[0] === date
+          .filter(
+            (h) =>
+              h.tankId === update.tankId &&
+              new Date(h.timestamp).toISOString().split("T")[0] === date
           )
-          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          .sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          )
 
         // Add this update to calculate net total
-        todaysUpdates.push(update);
+        todaysUpdates.push(update)
 
         // Calculate net change from start to current
-        const startLevel = todaysUpdates[0].previousLevel;
-        const currentLevel = update.currentLevel;
-        const netWithdrawn = Math.max(0, startLevel - currentLevel);
+        const startLevel = todaysUpdates[0].previousLevel
+        const currentLevel = update.currentLevel
+        const netWithdrawn = Math.max(0, startLevel - currentLevel)
 
         console.log("[useTankHistory] Recalculating totals:", {
           startLevel,
           currentLevel,
           netWithdrawn,
-          updates: todaysUpdates.map(u => ({
+          updates: todaysUpdates.map((u) => ({
             change: u.change,
-            level: u.currentLevel
-          }))
-        });
+            level: u.currentLevel,
+          })),
+        })
 
         // Set the total withdrawn to the net change
-        tankStatus.totalWithdrawn = netWithdrawn;
+        tankStatus.totalWithdrawn = netWithdrawn
       } else if (update.change > 0 && update.reason === "refill") {
         // Manual refill
         tankStatus.totalRefilled += update.change
