@@ -46,7 +46,11 @@ const UserManagementView = ({
       )
       return
     }
-    onAddUser(userForm)
+    onAddUser({
+      name: userForm.name,
+      password: userForm.password,
+      allowedStations: userForm.allowedStations,
+    })
     setUserForm({ name: "", password: "", allowedStations: [] })
     setShowAddModal(false)
   }
@@ -63,7 +67,11 @@ const UserManagementView = ({
       )
       return
     }
-    onUpdateUser(editingUser.id, userForm)
+    onUpdateUser(editingUser.id, {
+      name: userForm.name,
+      password: userForm.password,
+      allowedStations: userForm.allowedStations,
+    })
     setEditingUser(null)
     setUserForm({ name: "", password: "", allowedStations: [] })
     setShowEditModal(false)
@@ -200,6 +208,7 @@ const UserManagementView = ({
                 </button>
               </div>
             </div>
+            {/* No permission fields */}
           </div>
         ))}
         {users.length === 0 && (

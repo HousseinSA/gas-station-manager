@@ -43,23 +43,72 @@ export function useIndexHistory() {
   }>({})
 
   const addIndexUpdate = (update: Omit<IndexUpdate, "timestamp">) => {
-    const newUpdate = {
+    const timestamp = new Date().toISOString()
+    const newUpdate: IndexUpdate = {
       ...update,
-      timestamp: new Date().toISOString(),
+      timestamp,
     }
 
-    setIndexHistory((prev) => [...prev, newUpdate])
-    updateDailyMetrics(newUpdate)
+    setIndexHistory((prev) => {
+      const updated = [...prev, newUpdate]
+      // Trigger recalculation after state update
+      setTimeout(() => recalculateMetricsForDate(timestamp.split("T")[0]), 0)
+      return updated
+    })
   }
 
-  const updateDailyMetrics = (update: IndexUpdate) => {
-    const date = new Date(update.timestamp).toISOString().split("T")[0]
-    const liters = update.currentIndex - update.previousIndex
-    const revenue = liters * update.salePrice
-    const profit = revenue - liters * update.costPrice
-
+  // Recalculate metrics from scratch for a specific date
+  const recalculateMetricsForDate = (date: string) => {
     setDailyMetrics((prev) => {
-      const dayMetrics = prev[date] || {
+      // Get all updates for this date
+      const updatesForDate = indexHistory.filter(
+        (u) => u.timestamp.split("T")[0] === date
+      )
+
+      if (updatesForDate.length === 0) {
+        return prev
+      }
+
+      // Group by nozzle to track FIRST previousIndex and LATEST currentIndex
+      const nozzleState: {
+        [nozzleId: number]: {
+          pumpId: number
+          pumpName?: string
+          nozzleLabel?: string
+          firstPreviousIndex: number // First previousIndex of the day
+          latestCurrentIndex: number // Latest currentIndex
+          salePrice: number
+          costPrice: number
+        }
+      } = {}
+
+      // Process updates chronologically
+      updatesForDate
+        .sort(
+          (a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        )
+        .forEach((update) => {
+          if (!nozzleState[update.nozzleId]) {
+            // First update for this nozzle today - record the starting previousIndex
+            nozzleState[update.nozzleId] = {
+              pumpId: update.pumpId,
+              pumpName: update.pumpName,
+              nozzleLabel: update.nozzleLabel,
+              firstPreviousIndex: update.previousIndex, // Keep the FIRST
+              latestCurrentIndex: update.currentIndex, // Latest current
+              salePrice: update.salePrice,
+              costPrice: update.costPrice,
+            }
+          } else {
+            // Subsequent update - keep first previousIndex, update current
+            nozzleState[update.nozzleId].latestCurrentIndex =
+              update.currentIndex
+          }
+        })
+
+      // Now calculate metrics using firstPreviousIndex → latestCurrentIndex
+      const dayMetrics: DailyMetrics = {
         date,
         totalLiters: 0,
         totalRevenue: 0,
@@ -67,44 +116,44 @@ export function useIndexHistory() {
         byPump: {},
       }
 
-      // Update pump metrics (preserve pump name if available)
-      const pumpMetrics = dayMetrics.byPump[update.pumpId] || {
-        pumpName: update.pumpName,
-        totalLiters: 0,
-        byNozzle: {},
-      }
+      Object.entries(nozzleState).forEach(([nozzleIdStr, state]) => {
+        const nozzleId = Number(nozzleIdStr)
+        // Calculate from the FIRST previousIndex to LATEST currentIndex
+        const delta = state.latestCurrentIndex - state.firstPreviousIndex
+        const liters = delta > 0 ? delta : 0
+        const revenue = liters * state.salePrice
+        const profit = revenue - liters * state.costPrice
 
-      // Update nozzle metrics and attach human-friendly label when available
-      // If the same nozzle has multiple updates the same day, accumulate values
-      const existingNozzle = pumpMetrics.byNozzle[update.nozzleId]
-      if (existingNozzle) {
-        existingNozzle.liters += liters
-        existingNozzle.revenue += revenue
-        existingNozzle.profit += profit
-        // keep label if present, prefer existing
-        existingNozzle.nozzleLabel =
-          existingNozzle.nozzleLabel || update.nozzleLabel
-        pumpMetrics.byNozzle[update.nozzleId] = existingNozzle
-      } else {
-        pumpMetrics.byNozzle[update.nozzleId] = {
+        // Initialize pump if needed
+        if (!dayMetrics.byPump[state.pumpId]) {
+          dayMetrics.byPump[state.pumpId] = {
+            pumpName: state.pumpName,
+            totalLiters: 0,
+            byNozzle: {},
+          }
+        }
+
+        // Set nozzle metrics
+        dayMetrics.byPump[state.pumpId].byNozzle[nozzleId] = {
           liters,
           revenue,
           profit,
-          nozzleLabel: update.nozzleLabel,
+          nozzleLabel: state.nozzleLabel,
         }
-      }
 
-      // Update pump totals (recalculate from nozzle aggregates)
-      pumpMetrics.totalLiters = Object.values(pumpMetrics.byNozzle).reduce(
-        (sum, n) => sum + n.liters,
-        0
-      )
+        // Update totals
+        dayMetrics.totalLiters += liters
+        dayMetrics.totalRevenue += revenue
+        dayMetrics.totalProfit += profit
+      })
 
-      // Update daily totals
-      dayMetrics.totalLiters += liters
-      dayMetrics.totalRevenue += revenue
-      dayMetrics.totalProfit += profit
-      dayMetrics.byPump[update.pumpId] = pumpMetrics
+      // Recalculate pump totals
+      Object.values(dayMetrics.byPump).forEach((pump) => {
+        pump.totalLiters = Object.values(pump.byNozzle).reduce(
+          (sum, n) => sum + n.liters,
+          0
+        )
+      })
 
       return {
         ...prev,
@@ -114,13 +163,118 @@ export function useIndexHistory() {
   }
 
   const getDailyMetrics = (date: string) => {
-    return dailyMetrics[date] || null
+    // Get all updates for this date
+    const updatesForDate = indexHistory.filter(
+      (u) => u.timestamp.split("T")[0] === date
+    )
+
+    if (updatesForDate.length === 0) {
+      return null
+    }
+
+    // Track FIRST previousIndex and LATEST currentIndex per nozzle
+    const nozzleState: {
+      [nozzleId: number]: {
+        pumpId: number
+        pumpName?: string
+        nozzleLabel?: string
+        firstPreviousIndex: number
+        latestCurrentIndex: number
+        salePrice: number
+        costPrice: number
+      }
+    } = {}
+
+    updatesForDate
+      .sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      )
+      .forEach((update) => {
+        if (!nozzleState[update.nozzleId]) {
+          nozzleState[update.nozzleId] = {
+            pumpId: update.pumpId,
+            pumpName: update.pumpName,
+            nozzleLabel: update.nozzleLabel,
+            firstPreviousIndex: update.previousIndex,
+            latestCurrentIndex: update.currentIndex,
+            salePrice: update.salePrice,
+            costPrice: update.costPrice,
+          }
+        } else {
+          nozzleState[update.nozzleId].latestCurrentIndex = update.currentIndex
+        }
+      })
+
+    // Calculate metrics from FIRST previousIndex to LATEST currentIndex
+    const dayMetrics: DailyMetrics = {
+      date,
+      totalLiters: 0,
+      totalRevenue: 0,
+      totalProfit: 0,
+      byPump: {},
+    }
+
+    Object.entries(nozzleState).forEach(([nozzleIdStr, state]) => {
+      const nozzleId = Number(nozzleIdStr)
+      const delta = state.latestCurrentIndex - state.firstPreviousIndex
+      const liters = delta > 0 ? delta : 0
+      const revenue = liters * state.salePrice
+      const profit = revenue - liters * state.costPrice
+
+      if (!dayMetrics.byPump[state.pumpId]) {
+        dayMetrics.byPump[state.pumpId] = {
+          pumpName: state.pumpName,
+          totalLiters: 0,
+          byNozzle: {},
+        }
+      }
+
+      dayMetrics.byPump[state.pumpId].byNozzle[nozzleId] = {
+        liters,
+        revenue,
+        profit,
+        nozzleLabel: state.nozzleLabel,
+      }
+
+      dayMetrics.totalLiters += liters
+      dayMetrics.totalRevenue += revenue
+      dayMetrics.totalProfit += profit
+    })
+
+    Object.values(dayMetrics.byPump).forEach((pump) => {
+      pump.totalLiters = Object.values(pump.byNozzle).reduce(
+        (sum, n) => sum + n.liters,
+        0
+      )
+    })
+
+    return dayMetrics
+  }
+
+  const getLastEntryForNozzle = (nozzleId: number, date?: string) => {
+    const entries = indexHistory
+      .filter((u) => u.nozzleId === nozzleId)
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      )
+
+    if (!entries || entries.length === 0) return null
+    if (!date) return entries[0]
+
+    const day = date
+    const sameDayEntry = entries.find((e) => e.timestamp.split("T")[0] === day)
+    return sameDayEntry || null
   }
 
   const getMetricsForDateRange = (startDate: string, endDate: string) => {
-    return Object.values(dailyMetrics).filter(
-      (metrics) => metrics.date >= startDate && metrics.date <= endDate
-    )
+    const dates = new Set(indexHistory.map((u) => u.timestamp.split("T")[0]))
+
+    return Array.from(dates)
+      .filter((date) => date >= startDate && date <= endDate)
+      .map((date) => getDailyMetrics(date))
+      .filter((m) => m !== null) as DailyMetrics[]
   }
 
   return {
@@ -128,5 +282,6 @@ export function useIndexHistory() {
     getDailyMetrics,
     getMetricsForDateRange,
     indexHistory,
+    getLastEntryForNozzle,
   }
 }

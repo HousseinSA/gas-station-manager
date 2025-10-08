@@ -12,6 +12,7 @@ interface Nozzle {
   costPrice: number
   previousIndex: number
   currentIndex: number
+  installIndex?: number
 }
 
 interface Pump {
@@ -224,9 +225,23 @@ const Pumps = ({
 
                     return (
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium">
-                          Pistolet {nozzle.nozzleNumber} - {nozzle.fuelType}
-                        </span>
+                        <div>
+                          <span
+                            className={`font-medium mr-2 ${
+                              nozzle.fuelType === "Gasoil"
+                                ? "text-green-700"
+                                : nozzle.fuelType === "Essence"
+                                ? "text-orange-600"
+                                : "text-gray-800"
+                            }`}
+                          >
+                            Pistolet {nozzle.nozzleNumber} - {nozzle.fuelType}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            (Install index:{" "}
+                            {nozzle.installIndex ?? nozzle.previousIndex})
+                          </span>
+                        </div>
                         <span
                           className={nameClass}
                           title={

@@ -10,13 +10,13 @@ import { useTankHistory } from "./hooks/useTankHistory"
 
 import Login from "./components/Login"
 import Dashboard from "./components/Dashboard"
-import Tanks from "./components/Tanks"
 import Pumps from "./components/Pumps"
 import HistoryView from "./components/HistoryView"
 import StationModal from "./components/StationModal"
 import TankModal from "./components/TankModal"
 import PumpModal from "./components/PumpModal"
 import UserManagementView from "./components/UserManagementView"
+import Tanks from "./components/Tanks"
 
 interface PumpForm {
   pumpNumber: string
@@ -35,6 +35,10 @@ function normalizeNozzle(n: Partial<Nozzle>): Nozzle {
     costPrice: Number(n.costPrice) || 0,
     previousIndex: Number(n.previousIndex) || 0,
     currentIndex: Number(n.currentIndex) || Number(n.previousIndex) || 0,
+    installIndex:
+      typeof n.installIndex === "number"
+        ? n.installIndex
+        : Number(n.previousIndex) || Number(n.currentIndex) || 0,
   }
 }
 
@@ -65,10 +69,54 @@ const GasStationApp = () => {
     updatePump,
     updateNozzleIndex,
     updateTank,
+    setNozzleCurrentIndex,
+    commitAllNozzles,
   } = useStations()
   const metrics = useMetrics(currentStation)
   const indexHistory = useIndexHistory()
   const tankHistory = useTankHistory(currentStation?.id || null)
+  // Ref map to track the latest known currentIndex for each nozzle immediately
+  // (avoids relying on async setState or indexHistory state flushing).
+  const nozzleLatestIndexRef = React.useRef<Record<number, number>>({})
+
+  // Auto-commit previousIndex to currentIndex at local midnight, then every 24h
+  React.useEffect(() => {
+    if (!currentStation) return
+
+    let intervalId: number | null = null
+    let timeoutId: number | null = null
+
+    const scheduleNextMidnight = () => {
+      const now = new Date()
+      const next = new Date(now)
+      next.setDate(now.getDate() + 1)
+      next.setHours(0, 0, 0, 0)
+      const msUntilNext = next.getTime() - now.getTime()
+
+      timeoutId = window.setTimeout(() => {
+        try {
+          if (currentStation) commitAllNozzles(currentStation.id)
+        } catch (e) {
+          console.error("Error committing nozzles at midnight", e)
+        }
+        // after the first execution at midnight, set recurring interval every 24h
+        intervalId = window.setInterval(() => {
+          try {
+            if (currentStation) commitAllNozzles(currentStation.id)
+          } catch (e) {
+            console.error("Error in daily commit interval", e)
+          }
+        }, 24 * 60 * 60 * 1000)
+      }, msUntilNext)
+    }
+
+    scheduleNextMidnight()
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId)
+      if (intervalId) window.clearInterval(intervalId)
+    }
+  }, [currentStation, commitAllNozzles])
 
   // UI states
   const [activeTab, setActiveTab] = useState("tableau-de-bord")
@@ -135,15 +183,14 @@ const GasStationApp = () => {
   const handleAddPump = () => {
     if (!currentStation) return
 
-    // Validate pump number
-    if (!pumpForm.pumpNumber.trim()) {
-      alert("Le numéro de pompe est requis")
-      return
-    }
+    // If pump number is blank, we'll auto-assign a numeric pump number
+    const assignedPumpNumber = pumpForm.pumpNumber.trim()
+      ? pumpForm.pumpNumber
+      : String(currentStation.pumps.length + 1)
 
     // Check for duplicate pump number when adding a new pump
     const isDuplicatePumpNumber = currentStation.pumps.some(
-      (p) => p.pumpNumber === pumpForm.pumpNumber
+      (p) => p.pumpNumber === assignedPumpNumber
     )
 
     if (!isEditingPump && isDuplicatePumpNumber) {
@@ -172,8 +219,9 @@ const GasStationApp = () => {
         const normalized = normalizeNozzle(nozzle)
         return { ...normalized, currentIndex: normalized.previousIndex }
       })
+
       addPump(currentStation.id, {
-        pumpNumber: pumpForm.pumpNumber,
+        pumpNumber: assignedPumpNumber,
         nozzles: nozzlesWithCorrectIndex,
       })
     }
@@ -213,6 +261,53 @@ const GasStationApp = () => {
                 Gérer Utilisateurs
               </button>
             )}
+            {currentStation && (
+              <button
+                onClick={() => {
+                  if (
+                    confirm(
+                      "Clôturer la journée pour cette station maintenant ? (Si vous ne le faites pas, la mise à jour se fera automatiquement au prochain minuit)."
+                    )
+                  ) {
+                    // For each nozzle, create history entry for accumulated changes since last commit
+                    currentStation.pumps.forEach((pump) => {
+                      pump.nozzles.forEach((nozzle) => {
+                        // Only create history if there are changes
+                        if (nozzle.currentIndex !== nozzle.previousIndex) {
+                          const liters = Math.abs(
+                            nozzle.currentIndex - nozzle.previousIndex
+                          )
+
+                          // Create the index history entry
+                          indexHistory.addIndexUpdate({
+                            nozzleId: nozzle.id,
+                            pumpId: pump.id,
+                            previousIndex: nozzle.previousIndex,
+                            currentIndex: nozzle.currentIndex,
+                            liters,
+                            salePrice: nozzle.salePrice,
+                            costPrice: nozzle.costPrice,
+                            pumpName: pump.pumpNumber,
+                            nozzleLabel: `Pistolet ${nozzle.nozzleNumber}`,
+                          })
+                        }
+                      })
+                    })
+
+                    // Now commit all nozzles (updates previousIndex = currentIndex)
+                    commitAllNozzles(currentStation.id)
+
+                    alert(
+                      "Journée clôturée manuellement : previousIndex mis à jour."
+                    )
+                  }
+                }}
+                className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+              >
+                Clôturer journée
+              </button>
+            )}
+            {/* automatic daily commit active; manual commit button removed */}
             <button
               onClick={logout}
               className="flex items-center gap-2 bg-green-700 px-4 py-2 rounded hover:bg-green-800"
@@ -331,7 +426,17 @@ const GasStationApp = () => {
             </div>
 
             {/* Dashboard */}
-            {activeTab === "tableau-de-bord" && <Dashboard metrics={metrics} />}
+            {activeTab === "tableau-de-bord" && (
+              <Dashboard
+                metrics={
+                  indexHistory.getDailyMetrics(selectedDate) || {
+                    totalRevenue: metrics.totalRevenue,
+                    totalProfit: metrics.totalProfit,
+                    totalLiters: metrics.totalLiters,
+                  }
+                }
+              />
+            )}
 
             {/* Tanks */}
             {activeTab === "reservoirs" && (
@@ -366,86 +471,63 @@ const GasStationApp = () => {
                 }}
                 onDeletePump={(pumpId) => deletePump(currentStation.id, pumpId)}
                 onUpdateNozzleIndex={(pumpId, nozzleId, newIndex) => {
-                  console.log("[page] onUpdateNozzleIndex wrapper called", {
+                  if (!currentStation) return
+
+                  const pump = currentStation.pumps.find((p) => p.id === pumpId)
+                  if (!pump) return
+
+                  const nozzle = pump.nozzles.find((n) => n.id === nozzleId)
+                  if (!nozzle) return
+
+                  const prevIndexToUse =
+                    nozzleLatestIndexRef.current[nozzleId] ??
+                    nozzle.currentIndex
+
+                  const result = updateNozzleIndex(
+                    currentStation.id,
                     pumpId,
                     nozzleId,
                     newIndex,
-                    stationId: currentStation.id,
+                    prevIndexToUse
+                  )
+                  if (!result) {
+                    alert(
+                      "Impossible: le réservoir connecté à ce pistolet ne contient pas assez de carburant."
+                    )
+                    return
+                  }
+
+                  const { prevIndex, liters, prevTankLevel } = result
+
+                  // Create history entry to track changes immediately
+                  indexHistory.addIndexUpdate({
+                    nozzleId,
+                    pumpId,
+                    previousIndex: prevIndex,
+                    currentIndex: newIndex,
+                    liters,
+                    salePrice: nozzle.salePrice,
+                    costPrice: nozzle.costPrice,
+                    pumpName: pump.pumpNumber,
+                    nozzleLabel: `Pistolet ${nozzle.nozzleNumber}`,
                   })
 
-                  const pump = currentStation.pumps.find((p) => p.id === pumpId)
-                  if (pump) {
-                    // Update the index in hook; updateNozzleIndex returns boolean success
-                    const ok = updateNozzleIndex(
-                      currentStation.id,
-                      pumpId,
-                      nozzleId,
-                      newIndex
+                  // Keep fast-update ref in sync for UI
+                  nozzleLatestIndexRef.current[nozzleId] = newIndex
+
+                  console.log("[page] Updated nozzleLatestIndexRef:", {
+                    nozzleId,
+                    newValue: newIndex,
+                    allValues: { ...nozzleLatestIndexRef.current },
+                  })
+
+                  // Update tank history with authoritative values
+                  if (nozzle.tankId && liters > 0) {
+                    tankHistory.updateTankFromPumpUsage(
+                      nozzle.tankId,
+                      liters,
+                      prevTankLevel
                     )
-
-                    if (!ok) {
-                      alert(
-                        "Impossible: le réservoir connecté à ce pistolet ne contient pas assez de carburant."
-                      )
-                      return
-                    }
-
-                    // Track the index update in history using the prior nozzle.previousIndex
-                    const nozzle = pump.nozzles.find((n) => n.id === nozzleId)
-                    if (nozzle) {
-                      const prev =
-                        typeof nozzle.previousIndex === "number"
-                          ? nozzle.previousIndex
-                          : 0
-                      const liters = Math.max(newIndex - prev, 0)
-
-                      // Ensure tank history has a seed entry for this tank so daily
-                      // status can compute withdrawals properly. If no tank history
-                      // exists we add a manual update using the current tank level
-                      // (from station state) as previous/current so subsequent
-                      // pump-usage updates subtract from it.
-                      if (nozzle.tankId) {
-                        const tank = currentStation.tanks.find(
-                          (t) => t.id === nozzle.tankId
-                        )
-                        const last = tankHistory.tankHistory
-                          .filter((h) => h.tankId === nozzle.tankId)
-                          .sort(
-                            (a, b) =>
-                              new Date(b.timestamp).getTime() -
-                              new Date(a.timestamp).getTime()
-                          )[0]
-                        if (!last && tank) {
-                          // seed with a no-op manual update reflecting the current level
-                          tankHistory.addTankUpdate({
-                            tankId: tank.id,
-                            previousLevel: tank.currentLevel,
-                            currentLevel: tank.currentLevel,
-                            change: 0,
-                            reason: "manual-update",
-                          })
-                        }
-                      }
-
-                      indexHistory.addIndexUpdate({
-                        nozzleId,
-                        pumpId,
-                        previousIndex: prev,
-                        currentIndex: newIndex,
-                        liters,
-                        salePrice: nozzle.salePrice,
-                        costPrice: nozzle.costPrice,
-                        pumpName: pump.pumpNumber,
-                        nozzleLabel: `Pistolet ${nozzle.nozzleNumber}`,
-                      })
-
-                      if (nozzle.tankId && liters > 0) {
-                        tankHistory.updateTankFromPumpUsage(
-                          nozzle.tankId,
-                          liters
-                        )
-                      }
-                    }
                   }
                 }}
                 formatCurrency={formatCurrency}
@@ -458,6 +540,7 @@ const GasStationApp = () => {
             {/* History View */}
             {activeTab === "historique" && currentStation && (
               <HistoryView
+                key={selectedDate} // Force refresh when date changes
                 stationId={currentStation.id}
                 tankNames={Object.fromEntries(
                   currentStation.tanks.map((t) => [t.id, t.name])
@@ -560,6 +643,20 @@ const GasStationApp = () => {
                     change: refillAmount,
                     reason: "refill",
                   })
+                } else if (
+                  existingTank &&
+                  newLevel < existingTank.currentLevel
+                ) {
+                  // manual decrease in tank level (e.g., corrected measurement or manual withdrawal)
+                  const withdrawn = existingTank.currentLevel - newLevel
+                  // record manual withdrawal so Total retiré increases
+                  tankHistory.addTankUpdate({
+                    tankId: existingTank.id,
+                    previousLevel: existingTank.currentLevel,
+                    currentLevel: newLevel,
+                    change: -withdrawn,
+                    reason: "manual-update",
+                  })
                 }
 
                 updateTank(currentStation.id, editingTankId, {
@@ -599,12 +696,22 @@ const GasStationApp = () => {
               })
             }
           } else {
+            const assignedPumpNumber = data.pumpNumber.trim()
+              ? data.pumpNumber
+              : String(currentStation.pumps.length + 1)
+
             addPump(currentStation.id, {
-              pumpNumber: data.pumpNumber,
-              nozzles: data.nozzles.map((n) => ({
-                ...normalizeNozzle(n),
-                currentIndex: normalizeNozzle(n).previousIndex,
-              })),
+              pumpNumber: assignedPumpNumber,
+              nozzles: data.nozzles.map((n, idx) => {
+                const normalized = normalizeNozzle(n)
+                return {
+                  ...normalized,
+                  nozzleNumber: idx + 1,
+                  currentIndex: normalized.previousIndex,
+                  installIndex:
+                    normalized.installIndex ?? normalized.previousIndex,
+                }
+              }),
             })
           }
           setShowPumpModal(false)

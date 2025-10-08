@@ -9,7 +9,16 @@ export function useMetrics(station: Station | null) {
 
   station.pumps.forEach((pump) => {
     pump.nozzles.forEach((nozzle) => {
-      const liters = nozzle.currentIndex - nozzle.previousIndex
+      // If currentIndex exists, use it as the basis for calculation
+      // Calculate total change since last committed previousIndex
+      const currentIndex =
+        typeof nozzle.currentIndex === "number" ? nozzle.currentIndex : 0
+      const previousIndex =
+        typeof nozzle.previousIndex === "number" ? nozzle.previousIndex : 0
+      const delta = currentIndex - previousIndex
+
+      // Only count positive changes (dispensing) in metrics
+      const liters = delta > 0 ? delta : 0
       const revenue = liters * nozzle.salePrice
       const cost = liters * nozzle.costPrice
       const profit = revenue - cost

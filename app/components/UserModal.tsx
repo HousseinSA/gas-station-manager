@@ -92,6 +92,7 @@ const UserModal = ({ show, onClose, stations, onAddUser }: UserModalProps) => {
             ))}
           </div>
         </div>
+        {/* no extra permissions fields */}
         <div className="flex gap-3 justify-end pt-4">
           <button
             onClick={onClose}

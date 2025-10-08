@@ -6,7 +6,7 @@ interface TankLevel {
   previousLevel: number
   currentLevel: number
   change: number // Positive for refills, negative for withdrawals
-  reason: "pump-usage" | "manual-update" | "refill"
+  reason: "pump-usage" | "manual-update" | "refill" | "correction"
 }
 
 interface TankDailyStatus {
@@ -95,8 +95,15 @@ export function useTankHistory(stationId: number | null) {
     return statuses
   }
 
-  // Update tank level based on pump usage
-  const updateTankFromPumpUsage = (tankId: number, litersDispensed: number) => {
+  // Update tank level based on pump usage. prevTankLevel is an optional
+  // snapshot of the tank level taken before the station mutation. When
+  // provided we use it as the authoritative previous level if no existing
+  // tank-history entry exists for that tank (or when necessary to realign).
+  const updateTankFromPumpUsage = (
+    tankId: number,
+    litersDispensed: number,
+    prevTankLevel?: number
+  ) => {
     const lastStatus = tankHistory
       .filter((h) => h.tankId === tankId)
       .sort(
@@ -104,15 +111,28 @@ export function useTankHistory(stationId: number | null) {
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       )[0]
 
-    if (lastStatus) {
-      addTankUpdate({
-        tankId,
-        previousLevel: lastStatus.currentLevel,
-        currentLevel: lastStatus.currentLevel - litersDispensed,
-        change: -litersDispensed,
-        reason: "pump-usage",
-      })
-    }
+    // Determine the base level to subtract from: prefer the last recorded
+    // tank-history level; if none exists, fall back to prevTankLevel (if
+    // provided). If we still can't determine a base, do nothing to avoid
+    // creating incorrect entries.
+    const baseLevel =
+      typeof lastStatus?.currentLevel === "number"
+        ? lastStatus.currentLevel
+        : typeof prevTankLevel === "number"
+        ? prevTankLevel
+        : null
+
+    if (baseLevel === null) return
+
+    const newLevel = Math.max(baseLevel - litersDispensed, 0)
+
+    addTankUpdate({
+      tankId,
+      previousLevel: baseLevel,
+      currentLevel: newLevel,
+      change: -litersDispensed,
+      reason: "pump-usage",
+    })
   }
 
   return {

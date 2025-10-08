@@ -16,7 +16,6 @@ interface PumpModalProps {
   setPumpForm: (form: PumpForm) => void
   onAddPump: () => void
   onSavePump?: (data: { pumpNumber: string; nozzles: Nozzle[] }) => void
-  // updateNozzleForm and prepareNozzles are handled locally now via pendingNozzles
   currentStation?: Station | null
   isEditing?: boolean
 }
@@ -28,7 +27,6 @@ const PumpModal = ({
   setPumpForm,
   onAddPump,
   onSavePump,
-  // prepareNozzles removed; using local pending state now
   currentStation,
   isEditing,
 }: PumpModalProps) => {
@@ -41,11 +39,9 @@ const PumpModal = ({
         ? parseInt(pumpForm.nozzleCount)
         : 1
       setPendingCount(initialCount)
-      // Initialize pending nozzles from the form (do not mutate parent until save)
       if (pumpForm.nozzles && pumpForm.nozzles.length > 0) {
         setPendingNozzles(pumpForm.nozzles.slice(0, initialCount))
       } else {
-        // create default nozzle(s)
         setPendingNozzles([
           {
             id: Date.now(),
@@ -56,6 +52,7 @@ const PumpModal = ({
             costPrice: 0,
             previousIndex: 0,
             currentIndex: 0,
+            installIndex: 0,
             isNew: true,
           },
         ])
@@ -64,9 +61,6 @@ const PumpModal = ({
   }, [show, pumpForm.nozzleCount, pumpForm.nozzles, currentStation?.tanks])
 
   const isFormValid = () => {
-    // Check pump number
-    if (!pumpForm.pumpNumber.trim()) return false
-    // validate pendingNozzles (not persisted yet)
     return (
       pendingNozzles.length > 0 &&
       pendingNozzles.every(
@@ -75,7 +69,6 @@ const PumpModal = ({
           Number(nozzle.tankId) > 0 &&
           Number(nozzle.salePrice) > 0 &&
           Number(nozzle.costPrice) > 0 &&
-          // Require a previous index > 0 to avoid creating a pump with empty 0 indexes
           typeof nozzle.previousIndex === "number" &&
           nozzle.previousIndex > 0
       )
@@ -95,16 +88,13 @@ const PumpModal = ({
           <label className="block text-sm font-medium mb-2">
             Numéro de Pompe
           </label>
-          <input
-            type="text"
-            value={pumpForm.pumpNumber}
-            onChange={(e) =>
-              setPumpForm({ ...pumpForm, pumpNumber: e.target.value })
-            }
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-            placeholder="Ex: 1"
-          />
+          <div className="w-full px-4 py-2 border rounded-lg bg-gray-50 text-sm text-gray-700">
+            {isEditing && pumpForm.pumpNumber
+              ? pumpForm.pumpNumber
+              : "Auto (assigné lors de l'ajout)"}
+          </div>
         </div>
+
         <div>
           <label className="block text-sm font-medium mb-2">
             Nombre de Pistolets
@@ -113,7 +103,6 @@ const PumpModal = ({
             value={String(pendingCount) || "1"}
             onChange={(e) => {
               const count = parseInt(e.target.value)
-              // update local pending count and ensure pendingNozzles length matches
               setPendingCount(count)
               setPendingNozzles((prev) => {
                 const copy = [...prev]
@@ -128,6 +117,7 @@ const PumpModal = ({
                     costPrice: 0,
                     previousIndex: 0,
                     currentIndex: 0,
+                    installIndex: 0,
                     isNew: true,
                   })
                 }
@@ -156,10 +146,8 @@ const PumpModal = ({
                   <div>
                     <button
                       onClick={() => {
-                        // remove nozzle from pending list (explicit delete)
                         setPendingNozzles((prev) => {
                           const copy = prev.filter((_, i) => i !== index)
-                          // if removing last nozzle, recreate a default nozzle instead of leaving empty
                           if (copy.length === 0) {
                             const defaultNozzle: Nozzle = {
                               id: Date.now(),
@@ -289,7 +277,7 @@ const PumpModal = ({
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs font-medium mb-1">
-                      Index Précédent
+                      Index d'installation
                     </label>
                     <input
                       type="number"
@@ -301,7 +289,12 @@ const PumpModal = ({
                           e.target.value === "" ? 0 : parseFloat(e.target.value)
                         setPendingNozzles((prev) => {
                           const copy = [...prev]
-                          copy[index] = { ...copy[index], previousIndex: val }
+                          copy[index] = {
+                            ...copy[index],
+                            previousIndex: val,
+                            installIndex: val,
+                            nozzleNumber: index + 1,
+                          }
                           return copy
                         })
                       }}
@@ -326,6 +319,10 @@ const PumpModal = ({
                           : ""
                       }
                     />
+                    <div className="text-xs text-gray-500 mt-1">
+                      Index d'installation:{" "}
+                      {nozzle.installIndex ?? nozzle.previousIndex ?? 0}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -342,14 +339,12 @@ const PumpModal = ({
           </button>
           <button
             onClick={() => {
-              // Persist via direct callback to avoid async setState race
               if (onSavePump) {
                 onSavePump({
                   pumpNumber: pumpForm.pumpNumber,
                   nozzles: pendingNozzles,
                 })
               } else {
-                // fallback: persist to parent state and call onAddPump (less reliable)
                 setPumpForm({
                   ...pumpForm,
                   nozzles: pendingNozzles,
