@@ -42,16 +42,36 @@ export function useIndexHistory() {
     [date: string]: DailyMetrics
   }>({})
 
+  // Track the committed index (previousIndex) for each nozzle
+  const lastCommittedIndexRef = React.useRef<{ [nozzleId: number]: number }>({})
+
   const addIndexUpdate = (update: Omit<IndexUpdate, "timestamp">) => {
     const timestamp = new Date().toISOString()
+
+    // First update of the day uses previousIndex from the update
+    // Subsequent updates use the last committed value
+    const baseIndex =
+      lastCommittedIndexRef.current[update.nozzleId] ?? update.previousIndex
+
+    // Track this as the new committed value
+    lastCommittedIndexRef.current[update.nozzleId] = baseIndex
+
     const newUpdate: IndexUpdate = {
       ...update,
       timestamp,
+      previousIndex: baseIndex, // Use tracked committed value
     }
+
+    console.log("[useIndexHistory] Adding update:", {
+      nozzleId: update.nozzleId,
+      baseIndex,
+      currentIndex: update.currentIndex,
+      liters: update.liters,
+    })
 
     setIndexHistory((prev) => {
       const updated = [...prev, newUpdate]
-      // Trigger recalculation after state update
+      // Recalculate metrics with this update
       setTimeout(() => recalculateMetricsForDate(timestamp.split("T")[0]), 0)
       return updated
     })
@@ -119,10 +139,20 @@ export function useIndexHistory() {
       Object.entries(nozzleState).forEach(([nozzleIdStr, state]) => {
         const nozzleId = Number(nozzleIdStr)
         // Calculate from the FIRST previousIndex to LATEST currentIndex
-        const delta = state.latestCurrentIndex - state.firstPreviousIndex
-        const liters = delta > 0 ? delta : 0
+        // Calculate NET change from start to latest
+        const netDelta = state.latestCurrentIndex - state.firstPreviousIndex
+        const liters = Math.max(0, netDelta) // Only count net positive dispensing
         const revenue = liters * state.salePrice
         const profit = revenue - liters * state.costPrice
+
+        console.log("[useIndexHistory] Calculating nozzle metrics:", {
+          nozzleId,
+          firstPreviousIndex: state.firstPreviousIndex,
+          latestCurrentIndex: state.latestCurrentIndex,
+          netDelta,
+          liters,
+          revenue,
+        })
 
         // Initialize pump if needed
         if (!dayMetrics.byPump[state.pumpId]) {

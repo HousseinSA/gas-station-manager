@@ -53,11 +53,37 @@ export function useTankHistory(stationId: number | null) {
         refills: [],
       }
 
-      if (update.change < 0) {
-        // Withdrawal (pump usage)
-        tankStatus.totalWithdrawn += Math.abs(update.change)
+      if (update.reason === "pump-usage") {
+        // Get all updates for this tank on this day up to this point
+        const todaysUpdates = tankHistory
+          .filter(h => 
+            h.tankId === update.tankId && 
+            new Date(h.timestamp).toISOString().split('T')[0] === date
+          )
+          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+        // Add this update to calculate net total
+        todaysUpdates.push(update);
+
+        // Calculate net change from start to current
+        const startLevel = todaysUpdates[0].previousLevel;
+        const currentLevel = update.currentLevel;
+        const netWithdrawn = Math.max(0, startLevel - currentLevel);
+
+        console.log("[useTankHistory] Recalculating totals:", {
+          startLevel,
+          currentLevel,
+          netWithdrawn,
+          updates: todaysUpdates.map(u => ({
+            change: u.change,
+            level: u.currentLevel
+          }))
+        });
+
+        // Set the total withdrawn to the net change
+        tankStatus.totalWithdrawn = netWithdrawn;
       } else if (update.change > 0 && update.reason === "refill") {
-        // Refill
+        // Manual refill
         tankStatus.totalRefilled += update.change
         tankStatus.refills.push({
           timestamp: update.timestamp,
@@ -104,33 +130,39 @@ export function useTankHistory(stationId: number | null) {
     litersDispensed: number,
     prevTankLevel?: number
   ) => {
-    const lastStatus = tankHistory
+    // Get all updates for this tank, ordered by time
+    const updates = tankHistory
       .filter((h) => h.tankId === tankId)
       .sort(
         (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      )[0]
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      )
 
-    // Determine the base level to subtract from: prefer the last recorded
-    // tank-history level; if none exists, fall back to prevTankLevel (if
-    // provided). If we still can't determine a base, do nothing to avoid
-    // creating incorrect entries.
-    const baseLevel =
-      typeof lastStatus?.currentLevel === "number"
-        ? lastStatus.currentLevel
-        : typeof prevTankLevel === "number"
-        ? prevTankLevel
-        : null
+    // Get last known state
+    const lastUpdate = [...updates].reverse()[0]
+    const baseLevel = lastUpdate?.currentLevel ?? prevTankLevel
 
     if (baseLevel === null) return
 
-    const newLevel = Math.max(baseLevel - litersDispensed, 0)
+    console.log("[useTankHistory] Processing tank update:", {
+      tankId,
+      baseLevel,
+      litersDispensed,
+      prevTankLevel,
+      lastKnownLevel: lastUpdate?.currentLevel,
+    })
+
+    // Calculate new level - handle both dispensing and corrections
+    const newLevel = baseLevel - litersDispensed // Negative dispensed means add back
+
+    // Calculate the change - positive for corrections (adding back), negative for dispensing
+    const change = -litersDispensed // Invert because dispensed is opposite of change
 
     addTankUpdate({
       tankId,
       previousLevel: baseLevel,
       currentLevel: newLevel,
-      change: -litersDispensed,
+      change, // Will be negative for dispensing, positive for corrections
       reason: "pump-usage",
     })
   }

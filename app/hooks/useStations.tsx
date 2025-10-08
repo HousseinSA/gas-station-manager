@@ -142,116 +142,130 @@ export function useStations() {
   }
 
   // ───── Nozzle index ─────
- const updateNozzleIndex = (
-  stationId: number,
-  pumpId: number,
-  nozzleId: number,
-  newIndex: number,
-  prevForCalculation?: number
-): { prevIndex: number; liters: number; prevTankLevel?: number } | null => {
-  console.log(`[useStations] updateNozzleIndex called`, {
-    stationId,
-    pumpId,
-    nozzleId,
-    newIndex,
-    prevForCalculation,
-  })
+  const updateNozzleIndex = (
+    stationId: number,
+    pumpId: number,
+    nozzleId: number,
+    newIndex: number,
+    prevForCalculation?: number
+  ): { prevIndex: number; liters: number; prevTankLevel?: number } | null => {
+    console.log(`[useStations] updateNozzleIndex called`, {
+      stationId,
+      pumpId,
+      nozzleId,
+      newIndex,
+      prevForCalculation,
+    })
 
-  // Find the station, pump, and nozzle
-  const station = stations.find((s) => s.id === stationId)
-  if (!station) return null
-  const pump = station.pumps.find((p) => p.id === pumpId)
-  if (!pump) return null
-  const nozzle = pump.nozzles.find((n) => n.id === nozzleId)
-  if (!nozzle) return null
+    // Find the station, pump, and nozzle
+    const station = stations.find((s) => s.id === stationId)
+    if (!station) return null
+    const pump = station.pumps.find((p) => p.id === pumpId)
+    if (!pump) return null
+    const nozzle = pump.nozzles.find((n) => n.id === nozzleId)
+    if (!nozzle) return null
 
-  // Use prevForCalculation if provided (for same-day updates),
-  // otherwise use the last committed previousIndex
-  const baselinePrev = prevForCalculation ?? nozzle.currentIndex
+    // Use prevForCalculation if provided (for same-day updates),
+    // otherwise use the last committed previousIndex
+    const baselinePrev = prevForCalculation ?? nozzle.currentIndex
 
-  // Calculate change from the baseline
-  const delta = newIndex - baselinePrev
-  const liters = Math.abs(delta)
+    // Calculate change from the baseline
+    const delta = newIndex - baselinePrev
+    const liters = delta > 0 ? delta : 0 // Only count positive changes as real dispensing
 
-  // For dispensing (positive delta), verify sufficient fuel
-  const isDispensing = delta > 0
-  const litersRequired = isDispensing ? liters : 0
+    console.log("[useStations] Calculating tank changes:", {
+      nozzleId,
+      baselinePrev,
+      newIndex,
+      delta,
+      liters,
+      tankId: nozzle.tankId,
+    })
 
-  // Record tank level before mutation
-  const prevTankLevel = nozzle.tankId
-    ? station.tanks.find((t) => t.id === nozzle.tankId)?.currentLevel
-    : undefined
-    
-  if (nozzle.tankId && litersRequired > 0) {
-    const tank = station.tanks.find((t) => t.id === nozzle.tankId)
-    if (!tank) return null
-    if (tank.currentLevel < litersRequired) {
-      console.log("[useStations] update blocked: insufficient tank fuel", {
-        tankId: tank.id,
-        available: tank.currentLevel,
-        required: litersRequired,
+    const isDispensing = delta > 0
+    const litersRequired = isDispensing ? liters : 0
+
+    const prevTankLevel = nozzle.tankId
+      ? station.tanks.find((t) => t.id === nozzle.tankId)?.currentLevel
+      : undefined
+
+    if (nozzle.tankId && litersRequired > 0) {
+      const tank = station.tanks.find((t) => t.id === nozzle.tankId)
+      if (!tank) return null
+      if (tank.currentLevel < litersRequired) {
+        console.log("[useStations] update blocked: insufficient tank fuel", {
+          tankId: tank.id,
+          available: tank.currentLevel,
+          required: litersRequired,
+        })
+        return null
+      }
+    }
+
+    // Perform the update
+    setStations((prevStations) =>
+      prevStations.map((s) => {
+        if (s.id !== stationId) return s
+
+        let updatedTanks = s.tanks
+
+        const updatedPumps = s.pumps.map((p) => {
+          if (p.id !== pumpId) return p
+
+          return {
+            ...p,
+            nozzles: p.nozzles.map((n) => {
+              if (n.id !== nozzleId) return n
+
+              // Update tank level based on actual dispensed amount
+              if (n.tankId) {
+                updatedTanks = updatedTanks.map((t) => {
+                  if (t.id !== n.tankId) return t
+
+                  const currentLevel = t.currentLevel ?? 0
+
+                  // When decreasing nozzle (correction), need to increase tank level back
+                  if (delta < 0) {
+                    // Restoring fuel to tank (absolute value to get positive amount)
+                    const correction = Math.abs(delta)
+                    return {
+                      ...t,
+                      currentLevel: Math.min(
+                        currentLevel + correction,
+                        t.capacity
+                      ),
+                    }
+                  }
+
+                  // When increasing nozzle (dispensing), decrease tank level
+                  if (delta > 0) {
+                    return {
+                      ...t,
+                      currentLevel: Math.max(currentLevel - delta, 0),
+                    }
+                  }
+
+                  return t // No change if delta is 0
+                })
+              }
+
+              // Update currentIndex
+              return { ...n, currentIndex: newIndex }
+            }),
+          }
+        })
+
+        return { ...s, pumps: updatedPumps, tanks: updatedTanks }
       })
-      return null
+    )
+
+    // Return authoritative values for history
+    return {
+      prevIndex: baselinePrev,
+      liters,
+      prevTankLevel,
     }
   }
-
-  // Perform the update
-  setStations((prevStations) =>
-    prevStations.map((s) => {
-      if (s.id !== stationId) return s
-
-      let updatedTanks = s.tanks
-
-      const updatedPumps = s.pumps.map((p) => {
-        if (p.id !== pumpId) return p
-
-        return {
-          ...p,
-          nozzles: p.nozzles.map((n) => {
-            if (n.id !== nozzleId) return n
-
-            // Update tank level based on the delta from baselinePrev
-            if (n.tankId) {
-              updatedTanks = updatedTanks.map((t) => {
-                if (t.id !== n.tankId) return t
-
-                const currentLevel = t.currentLevel ?? 0
-                const capacity = t.capacity ?? 0
-
-                if (delta > 0) {
-                  // Dispensing: decrease tank
-                  return {
-                    ...t,
-                    currentLevel: Math.max(currentLevel - delta, 0),
-                  }
-                } else {
-                  // Correction: restore fuel
-                  const correction = Math.abs(delta)
-                  return {
-                    ...t,
-                    currentLevel: Math.min(currentLevel + correction, capacity),
-                  }
-                }
-              })
-            }
-
-            // Update currentIndex
-            return { ...n, currentIndex: newIndex }
-          }),
-        }
-      })
-
-      return { ...s, pumps: updatedPumps, tanks: updatedTanks }
-    })
-  )
-
-  // Return authoritative values for history
-  return {
-    prevIndex: baselinePrev,
-    liters,
-    prevTankLevel,
-  }
-}
 
   const currentStation = stations.find((s) => s.id === selectedStation) || null
 

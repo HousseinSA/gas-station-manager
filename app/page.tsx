@@ -479,10 +479,22 @@ const GasStationApp = () => {
                   const nozzle = pump.nozzles.find((n) => n.id === nozzleId)
                   if (!nozzle) return
 
+                  // Get the previous value for INCREMENTAL calculation
                   const prevIndexToUse =
                     nozzleLatestIndexRef.current[nozzleId] ??
                     nozzle.currentIndex
 
+                  // Calculate INCREMENTAL change (for tank update)
+                  const incrementalDelta = newIndex - prevIndexToUse
+                  const incrementalLiters = Math.abs(incrementalDelta)
+
+                  // Record tank level BEFORE update
+                  const prevTankLevel = nozzle.tankId
+                    ? currentStation.tanks.find((t) => t.id === nozzle.tankId)
+                        ?.currentLevel
+                    : undefined
+
+                  // Update station state (this updates both tank and nozzle)
                   const result = updateNozzleIndex(
                     currentStation.id,
                     pumpId,
@@ -490,6 +502,7 @@ const GasStationApp = () => {
                     newIndex,
                     prevIndexToUse
                   )
+
                   if (!result) {
                     alert(
                       "Impossible: le réservoir connecté à ce pistolet ne contient pas assez de carburant."
@@ -497,38 +510,44 @@ const GasStationApp = () => {
                     return
                   }
 
-                  const { prevIndex, liters, prevTankLevel } = result
+                  const { prevIndex } = result
 
-                  // Create history entry to track changes immediately
+                  // Create index history (uses committed previousIndex for daily totals)
                   indexHistory.addIndexUpdate({
                     nozzleId,
                     pumpId,
-                    previousIndex: prevIndex,
+                    previousIndex: nozzle.previousIndex, // Use committed previousIndex
                     currentIndex: newIndex,
-                    liters,
+                    liters: Math.abs(newIndex - nozzle.previousIndex),
                     salePrice: nozzle.salePrice,
                     costPrice: nozzle.costPrice,
                     pumpName: pump.pumpNumber,
                     nozzleLabel: `Pistolet ${nozzle.nozzleNumber}`,
                   })
 
-                  // Keep fast-update ref in sync for UI
-                  nozzleLatestIndexRef.current[nozzleId] = newIndex
-
-                  console.log("[page] Updated nozzleLatestIndexRef:", {
-                    nozzleId,
-                    newValue: newIndex,
-                    allValues: { ...nozzleLatestIndexRef.current },
-                  })
-
-                  // Update tank history with authoritative values
-                  if (nozzle.tankId && liters > 0) {
-                    tankHistory.updateTankFromPumpUsage(
-                      nozzle.tankId,
-                      liters,
-                      prevTankLevel
-                    )
+                  // Update tank history with INCREMENTAL change
+                  if (nozzle.tankId && incrementalLiters > 0) {
+                    if (incrementalDelta > 0) {
+                      // Dispensing - withdrawal
+                      tankHistory.updateTankFromPumpUsage(
+                        nozzle.tankId,
+                        incrementalLiters,
+                        prevTankLevel
+                      )
+                    } else {
+                      // Correction - add back to tank
+                      tankHistory.addTankUpdate({
+                        tankId: nozzle.tankId,
+                        previousLevel: prevTankLevel || 0,
+                        currentLevel: (prevTankLevel || 0) + incrementalLiters,
+                        change: incrementalLiters,
+                        reason: "correction",
+                      })
+                    }
                   }
+
+                  // Update ref for next calculation
+                  nozzleLatestIndexRef.current[nozzleId] = newIndex
                 }}
                 formatCurrency={formatCurrency}
                 setPumpForm={setPumpForm}
