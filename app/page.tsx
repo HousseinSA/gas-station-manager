@@ -535,12 +535,12 @@ const GasStationApp = () => {
                         prevTankLevel
                       )
                     } else {
-                      // Correction - add back to tank
+                      // Correction (user decreased index) - add fuel back to tank
                       tankHistory.addTankUpdate({
                         tankId: nozzle.tankId,
                         previousLevel: prevTankLevel || 0,
                         currentLevel: (prevTankLevel || 0) + incrementalLiters,
-                        change: incrementalLiters,
+                        change: incrementalLiters, // Positive = adding back to tank
                         reason: "correction",
                       })
                     }
