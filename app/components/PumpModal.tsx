@@ -4,6 +4,7 @@ import Modal from "./Modal"
 import { Station, Nozzle } from "../hooks/useStations"
 
 interface PumpForm {
+  id?: number
   pumpNumber: string
   nozzleCount: string
   nozzles: Nozzle[]
@@ -32,7 +33,7 @@ const PumpModal = ({
 }: PumpModalProps) => {
   const [pendingNozzles, setPendingNozzles] = useState<Nozzle[]>([])
   const [pendingCount, setPendingCount] = useState<number>(1)
-
+  console.log("current station", currentStation?.tanks[0]?.fuelType)
   useEffect(() => {
     if (show) {
       const initialCount = pumpForm.nozzleCount
@@ -46,7 +47,7 @@ const PumpModal = ({
           {
             id: Date.now(),
             nozzleNumber: 1,
-            fuelType: "Gasoil",
+            fuelType: currentStation?.tanks[0]?.fuelType || "Gasoil",
             tankId: currentStation?.tanks[0]?.id || 0,
             salePrice: 0,
             costPrice: 0,
@@ -111,8 +112,8 @@ const PumpModal = ({
                   copy.push({
                     id: Date.now() + copy.length,
                     nozzleNumber: copy.length + 1,
-                    fuelType: "Gasoil",
-                    tankId: currentStation?.tanks[0]?.id || 0,
+                    fuelType: "", // Will be set when tank is selected
+                    tankId: 0,
                     salePrice: 0,
                     costPrice: 0,
                     previousIndex: 0,
@@ -185,54 +186,64 @@ const PumpModal = ({
                     </button>
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Réservoir
+                      </label>
+                      <select
+                        value={String(
+                          nozzle.tankId || currentStation?.tanks[0]?.id || ""
+                        )}
+                        onChange={(e) => {
+                          const selectedTankId = parseInt(e.target.value)
+                          const selectedTank = currentStation?.tanks.find(
+                            (t) => t.id === selectedTankId
+                          )
+
+                          setPendingNozzles((prev) => {
+                            const copy = [...prev]
+                            copy[index] = {
+                              ...copy[index],
+                              tankId: selectedTankId,
+                              fuelType: selectedTank?.fuelType || "Gasoil",
+                            }
+                            return copy
+                          })
+                        }}
+                        className="w-full px-3 py-2 text-sm border rounded-lg cursor-pointer"
+                        disabled={!nozzle.isNew}
+                      >
+                        {currentStation?.tanks.map((tank) => (
+                          <option key={tank.id} value={tank.id}>
+                            {tank.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Type de Carburant
+                      </label>
+
+                      <div
+                        className={`px-3 py-2 text-sm rounded-lg font-medium text-white text-center ${
+                          nozzle.fuelType === "Gasoil"
+                            ? "bg-green-500"
+                            : "bg-red-500"
+                        }`}
+                      >
+                        {currentStation?.tanks.find(
+                          (t) => t.id === nozzle.tankId
+                        )?.fuelType ||
+                          currentStation?.tanks[0]?.fuelType ||
+                          "Gasoil"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium mb-1">
-                      Type de Carburant
-                    </label>
-                    <select
-                      value={nozzle.fuelType}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setPendingNozzles((prev) => {
-                          const copy = [...prev]
-                          copy[index] = { ...copy[index], fuelType: val }
-                          return copy
-                        })
-                      }}
-                      className="w-full px-3 py-2 text-sm border rounded-lg"
-                    >
-                      <option value="Gasoil">Gasoil</option>
-                      <option value="Essence">Essence</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1">
-                      Réservoir
-                    </label>
-                    <select
-                      value={String(nozzle.tankId)}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value)
-                        setPendingNozzles((prev) => {
-                          const copy = [...prev]
-                          copy[index] = { ...copy[index], tankId: v }
-                          return copy
-                        })
-                      }}
-                      className="w-full px-3 py-2 text-sm border rounded-lg"
-                    >
-                      {currentStation?.tanks.map((tank) => (
-                        <option key={tank.id} value={tank.id}>
-                          {tank.name}
-                        </option>
-                      ))}
-                      {(!currentStation?.tanks ||
-                        currentStation.tanks.length === 0) && (
-                        <option value={0}>Aucun réservoir</option>
-                      )}
-                    </select>
-                  </div>
                   <div>
                     <label className="block text-xs font-medium mb-1">
                       Prix de Vente (MRU/L)

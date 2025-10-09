@@ -19,6 +19,7 @@ import UserManagementView from "./components/UserManagementView"
 import Tanks from "./components/Tanks"
 
 interface PumpForm {
+  id?: number
   pumpNumber: string
   nozzleCount: string
   nozzles: Nozzle[]
@@ -135,6 +136,7 @@ const GasStationApp = () => {
     name: "",
     capacity: "",
     currentLevel: "",
+    fuelType: "Gasoil" as "Gasoil" | "Essence",
   })
   const [pumpForm, setPumpForm] = useState<PumpForm>({
     pumpNumber: "",
@@ -175,8 +177,14 @@ const GasStationApp = () => {
       name: payload.name,
       capacity: payload.capacity,
       currentLevel: Math.min(payload.currentLevel || 0, payload.capacity),
+      fuelType: tankForm.fuelType,
     })
-    setTankForm({ name: "", capacity: "", currentLevel: "" })
+    setTankForm({
+      name: "",
+      capacity: "",
+      currentLevel: "",
+      fuelType: "Gasoil",
+    })
     setShowTankModal(false)
   }
 
@@ -452,6 +460,7 @@ const GasStationApp = () => {
                       name: tank.name,
                       capacity: String(tank.capacity),
                       currentLevel: String(tank.currentLevel),
+                      fuelType: tank.fuelType,
                     })
                     setShowTankModal(true)
                   }
@@ -634,7 +643,12 @@ const GasStationApp = () => {
         onClose={() => {
           setShowTankModal(false)
           setEditingTankId(null)
-          setTankForm({ name: "", capacity: "", currentLevel: "" })
+          setTankForm({
+            name: "",
+            capacity: "",
+            currentLevel: "",
+            fuelType: "Gasoil",
+          })
         }}
         tankForm={tankForm}
         setTankForm={setTankForm}
@@ -682,10 +696,16 @@ const GasStationApp = () => {
                   name: payload.name,
                   capacity: payload.capacity,
                   currentLevel: newLevel,
+                  fuelType: payload.fuelType,
                 })
                 setShowTankModal(false)
                 setEditingTankId(null)
-                setTankForm({ name: "", capacity: "", currentLevel: "" })
+                setTankForm({
+                  name: "",
+                  capacity: "",
+                  currentLevel: "",
+                  fuelType: "Gasoil",
+                })
               }
             : undefined
         }
@@ -703,10 +723,10 @@ const GasStationApp = () => {
         onAddPump={handleAddPump}
         onSavePump={(data) => {
           if (!currentStation) return
-          if (isEditingPump) {
-            // find existing pump by first nozzle id if possible
+          if (isEditingPump && pumpForm.id) {
+            // Find existing pump by ID
             const existingPump = currentStation.pumps.find(
-              (p) => p.nozzles[0]?.id === pumpForm.nozzles[0]?.id
+              (p) => p.id === pumpForm.id
             )
             if (existingPump) {
               updatePump(currentStation.id, existingPump.id, {

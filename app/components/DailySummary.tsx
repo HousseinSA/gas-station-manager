@@ -1,5 +1,13 @@
 import React from "react"
-import { Calendar } from "lucide-react"
+import {
+  Calendar,
+  Droplets,
+  DollarSign,
+  TrendingUp,
+  Fuel,
+  GaugeCircle,
+  Wallet,
+} from "lucide-react"
 
 interface DailyMetrics {
   date: string
@@ -77,38 +85,53 @@ const DailySummary = ({
       </div>
       {/* Daily Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Volume total (vendu)</div>
-          <div className="text-2xl font-medium">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Droplets className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="hidden sm:inline">Volume total (vendu)</span>
+            <span className="sm:hidden">Volume</span>
+          </div>
+          <div className="text-2xl font-medium mt-1">
             {formatNumber(metrics.totalLiters)} L
           </div>
-          <div className="text-xs text-gray-400 mt-1">
-            Somme des litres calculés depuis les relevés d&apos;index
-          </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Revenu total</div>
-          <div className="text-2xl font-medium">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Wallet className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="hidden sm:inline">Revenu total</span>
+            <span className="sm:hidden">Revenu</span>
+          </div>
+          <div className="text-2xl font-medium mt-1">
             {formatCurrency(metrics.totalRevenue)}
           </div>
-          <div className="text-xs text-gray-400 mt-1">
-            Somme des ventes = litres × prix de vente
-          </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Bénéfice total</div>
-          <div className="text-2xl font-medium">
-            {formatCurrency(metrics.totalProfit)}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="hidden sm:inline">Bénéfice total</span>
+            <span className="sm:hidden">Bénéfice</span>
           </div>
-          <div className="text-xs text-gray-400 mt-1">
-            Revenu total − coût total (estimation)
+          <div
+            className={`text-2xl font-medium mt-1 ${
+              metrics.totalProfit > 0
+                ? "text-green-600"
+                : metrics.totalProfit < 0
+                ? "text-red-600"
+                : "text-gray-600"
+            }`}
+          >
+            {formatCurrency(metrics.totalProfit)}
           </div>
         </div>
       </div>
 
       {/* Tank Status */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-lg font-medium mb-4">État des Réservoirs</h3>
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4">
+        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <GaugeCircle className="w-5 h-5 md:w-6 md:h-6" />
+          <span className="hidden sm:inline">État des Réservoirs</span>
+          <span className="sm:hidden">Réservoirs</span>
+        </h3>
         <div className="space-y-4">
           {Object.values(tankStatuses).map((tank) => {
             const capacityGuess = Math.max(tank.startLevel, tank.endLevel, 1)
@@ -117,7 +140,10 @@ const DailySummary = ({
               Math.min(100, Math.round((tank.endLevel / capacityGuess) * 100))
             )
             return (
-              <div key={tank.tankId} className="border-b pb-4">
+              <div
+                key={tank.tankId}
+                className="border-b border-gray-100 pb-4 last:border-b-0"
+              >
                 <div className="flex justify-between mb-2">
                   <span className="font-medium">
                     {tankNames[tank.tankId] || `Réservoir ${tank.tankId}`}
@@ -141,7 +167,6 @@ const DailySummary = ({
                 <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                   <div>Niveau initial: {formatNumber(tank.startLevel)} L</div>
                   <div>Total retiré: {formatNumber(tank.totalWithdrawn)} L</div>
-                  <div>Total rempli: {formatNumber(tank.totalRefilled)} L</div>
                   <div>Niveau final: {formatNumber(tank.endLevel)} L</div>
                 </div>
               </div>
@@ -151,11 +176,18 @@ const DailySummary = ({
       </div>
 
       {/* Pump Details */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-lg font-medium mb-4">Détails par Pompe</h3>
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4">
+        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <Fuel className="w-5 h-5 md:w-6 md:h-6" />
+          <span className="hidden sm:inline">Détails par Pompe</span>
+          <span className="sm:hidden">Pompes</span>
+        </h3>
         <div className="space-y-4">
           {Object.entries(metrics.byPump).map(([pumpId, pump]) => (
-            <div key={pumpId} className="border rounded-lg p-3">
+            <div
+              key={pumpId}
+              className="border border-gray-200 hover:border-gray-300 rounded-lg p-4 transition-all duration-200 bg-gray-50/50"
+            >
               <div className="flex justify-between items-center mb-2">
                 <div className="font-semibold text-md">
                   Pompe {pump.pumpName || pumpNumbers[parseInt(pumpId)]}
@@ -165,14 +197,14 @@ const DailySummary = ({
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 border-b pb-2">
+              <div className="overflow-x-auto bg-white rounded-lg">
+                <div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 border-b border-gray-200 pb-2 mb-1">
                   <div className="col-span-6">Pistolet</div>
                   <div className="col-span-2 text-right">Litres</div>
                   <div className="col-span-2 text-right">Revenu</div>
                   <div className="col-span-2 text-right">Bénéfice</div>
                 </div>
-                <div className="space-y-1 mt-2">
+                <div className="space-y-2 mt-2">
                   {Object.entries(pump.byNozzle).map(([nozzleId, nozzle]) => (
                     <div
                       key={nozzleId}
@@ -187,7 +219,15 @@ const DailySummary = ({
                       <div className="col-span-2 text-right">
                         {formatCurrency(nozzle.revenue)}
                       </div>
-                      <div className="col-span-2 text-right">
+                      <div
+                        className={`col-span-2 text-right ${
+                          nozzle.profit > 0
+                            ? "text-green-600"
+                            : nozzle.profit < 0
+                            ? "text-red-600"
+                            : "text-gray-600"
+                        }`}
+                      >
                         {formatCurrency(nozzle.profit)}
                       </div>
                     </div>

@@ -12,6 +12,7 @@ export interface Tank {
   capacity: number
   currentLevel: number
   dateAdded: string
+  fuelType: "Gasoil" | "Essence" // Only allow these two fuel types
 }
 export interface Pump {
   id: number
@@ -51,6 +52,11 @@ export function useStations() {
 
   // ───── Tank ─────
   const addTank = (stationId: number, tank: Omit<Tank, "id" | "dateAdded">) => {
+    if (!tank.fuelType) {
+      console.error("Fuel type is required")
+      return
+    }
+
     setStations(
       stations.map((s) =>
         s.id === stationId
@@ -62,6 +68,7 @@ export function useStations() {
                   ...tank,
                   id: Date.now(),
                   dateAdded: new Date().toISOString(),
+                  fuelType: tank.fuelType, // Ensure fuelType is included
                 },
               ],
             }
@@ -138,6 +145,28 @@ export function useStations() {
           ? { ...s, pumps: s.pumps.filter((p) => p.id !== pumpId) }
           : s
       )
+    )
+  }
+
+  const updatePump = (
+    stationId: number,
+    pumpId: number,
+    updates: Partial<Omit<Pump, "id">>
+  ) => {
+    setStations((prev) =>
+      prev.map((s) => {
+        if (s.id !== stationId) return s
+        return {
+          ...s,
+          pumps: s.pumps.map((p) => {
+            if (p.id !== pumpId) return p
+            return {
+              ...p,
+              ...updates,
+            }
+          }),
+        }
+      })
     )
   }
 
@@ -328,6 +357,7 @@ export function useStations() {
     deleteTank,
     addPump,
     deletePump,
+    updatePump,
     updateNozzleIndex,
     updateTank,
     setNozzleCurrentIndex,
