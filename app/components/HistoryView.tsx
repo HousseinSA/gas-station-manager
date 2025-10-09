@@ -1,6 +1,5 @@
 import React, { useState } from "react"
-import DailySummary from "./DailySummary"
-
+import DailySummary from "../components/DailySummary/index"
 interface HistoryViewProps {
   stationId: number
   tankNames: { [tankId: number]: string }
