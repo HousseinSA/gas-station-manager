@@ -141,207 +141,222 @@ const PumpModal = ({
             <h3 className="font-medium">
               {t("nozzleConfiguration") || "Configuration des Pistolets"}
             </h3>
-            {pendingNozzles.map((nozzle, index) => (
-              <div
-                key={nozzle.id}
-                className="bg-gray-50 p-4 rounded-lg space-y-3"
-              >
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium text-sm">
-                    {t("nozzle") || "Pistolet"} {index + 1}
-                  </h4>
-                  <div>
-                    <button
-                      onClick={() => {
-                        setPendingNozzles((prev) => {
-                          const copy = prev.filter((_, i) => i !== index)
-                          if (copy.length === 0) {
-                            const defaultNozzle: Nozzle = {
-                              id: Date.now(),
-                              nozzleNumber: 1,
-                              fuelType: "Gasoil",
-                              tankId: currentStation?.tanks[0]?.id || 0,
-                              salePrice: 0,
-                              costPrice: 0,
-                              previousIndex: 0,
-                              currentIndex: 0,
-                              isNew: true,
-                            }
-                            return [defaultNozzle]
+            {pendingNozzles.map((nozzle, index) => {
+              const TankfuelType = currentStation?.tanks.find(
+                (t) => t.id === nozzle.tankId
+              )?.fuelType
+              return (
+                <>
+                  <div
+                    key={nozzle.id}
+                    className="bg-gray-50 p-4 rounded-lg space-y-3"
+                  >
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium text-sm">
+                        {t("nozzle") || "Pistolet"} {index + 1}
+                      </h4>
+                      <div>
+                        <button
+                          onClick={() => {
+                            setPendingNozzles((prev) => {
+                              const copy = prev.filter((_, i) => i !== index)
+                              if (copy.length === 0) {
+                                const defaultNozzle: Nozzle = {
+                                  id: Date.now(),
+                                  nozzleNumber: 1,
+                                  fuelType: "Gasoil",
+                                  tankId: currentStation?.tanks[0]?.id || 0,
+                                  salePrice: 0,
+                                  costPrice: 0,
+                                  previousIndex: 0,
+                                  currentIndex: 0,
+                                  isNew: true,
+                                }
+                                return [defaultNozzle]
+                              }
+                              return copy.map((n, idx) => ({
+                                ...n,
+                                nozzleNumber: idx + 1,
+                              }))
+                            })
+                            setPendingCount((c) => Math.max(1, c - 1))
+                          }}
+                          className={`text-sm ${
+                            pendingNozzles.length <= 1
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "text-red-600 hover:text-red-700"
+                          }`}
+                          disabled={pendingNozzles.length <= 1}
+                          title={
+                            pendingNozzles.length <= 1
+                              ? t("atLeastOneNozzle")
+                              : t("delete")
                           }
-                          return copy.map((n, idx) => ({
-                            ...n,
-                            nozzleNumber: idx + 1,
-                          }))
-                        })
-                        setPendingCount((c) => Math.max(1, c - 1))
-                      }}
-                      className={`text-sm ${
-                        pendingNozzles.length <= 1
-                          ? "text-gray-400 cursor-not-allowed"
-                          : "text-red-600 hover:text-red-700"
-                      }`}
-                      disabled={pendingNozzles.length <= 1}
-                      title={
-                        pendingNozzles.length <= 1
-                          ? t("atLeastOneNozzle")
-                          : t("delete")
-                      }
-                    >
-                      <Trash className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-medium mb-1">
-                        {t("tank") || "Réservoir"}
-                      </label>
-                      <select
-                        value={String(
-                          nozzle.tankId || currentStation?.tanks[0]?.id || ""
-                        )}
-                        onChange={(e) => {
-                          const selectedTankId = parseInt(e.target.value)
-                          const selectedTank = currentStation?.tanks.find(
-                            (t) => t.id === selectedTankId
-                          )
-
-                          setPendingNozzles((prev) => {
-                            const copy = [...prev]
-                            copy[index] = {
-                              ...copy[index],
-                              tankId: selectedTankId,
-                              fuelType: selectedTank?.fuelType || "Gasoil",
-                            }
-                            return copy
-                          })
-                        }}
-                        className="w-full px-3 py-2 text-sm border rounded-lg cursor-pointer"
-                        disabled={!nozzle.isNew}
-                      >
-                        {currentStation?.tanks.map((tank) => (
-                          <option key={tank.id} value={tank.id}>
-                            {tank.name}
-                          </option>
-                        ))}
-                      </select>
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1">
-                        {t("fuelType") }
-                      </label>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-medium mb-1">
+                            {t("tank")}
+                          </label>
+                          <select
+                            value={String(
+                              nozzle.tankId ||
+                                currentStation?.tanks[0]?.id ||
+                                ""
+                            )}
+                            onChange={(e) => {
+                              const selectedTankId = parseInt(e.target.value)
+                              const selectedTank = currentStation?.tanks.find(
+                                (t) => t.id === selectedTankId
+                              )
 
-                      <div
-                        className={`px-3 py-2 text-sm rounded-lg font-medium text-white text-center ${
-                          nozzle.fuelType === "Gasoil"
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      >
-                        { currentStation?.tanks.find(
-                          (t) => t.id === nozzle.tankId
-                        )?.fuelType || currentStation?.tanks[0]?.fuelType}
+                              setPendingNozzles((prev) => {
+                                const copy = [...prev]
+                                copy[index] = {
+                                  ...copy[index],
+                                  tankId: selectedTankId,
+                                  fuelType: selectedTank?.fuelType || "Gasoil",
+                                }
+                                return copy
+                              })
+                            }}
+                            className="w-full px-3 py-2 text-sm border rounded-lg cursor-pointer"
+                            disabled={!nozzle.isNew}
+                          >
+                            {currentStation?.tanks.map((tank) => (
+                              <option key={tank.id} value={tank.id}>
+                                {tank.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">
+                            {t("fuelType")}
+                          </label>
+
+                          <div
+                            className={`px-3 py-2 text-sm rounded-lg font-medium text-white text-center ${
+                              nozzle.fuelType === "Gasoil"
+                                ? "bg-green-500"
+                                : "bg-red-500"
+                            }`}
+                          >
+                            {t(TankfuelType!?.toLowerCase())}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium mb-1">
+                          {t("salePrice") || "Prix de Vente (MRU/L)"}
+                        </label>
+                        <input
+                          type="number"
+                          value={nozzle.salePrice === 0 ? "" : nozzle.salePrice}
+                          onChange={(e) => {
+                            const v =
+                              e.target.value === ""
+                                ? 0
+                                : parseFloat(e.target.value)
+                            setPendingNozzles((prev) => {
+                              const copy = [...prev]
+                              copy[index] = { ...copy[index], salePrice: v }
+                              return copy
+                            })
+                          }}
+                          className="w-full px-3 py-2 text-sm border rounded-lg"
+                          step="0.01"
+                          placeholder={t("pricePlaceholder") || "0,00"}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1">
+                          {t("costPrice") || "Prix de Coût (MRU/L)"}
+                        </label>
+                        <input
+                          className="w-full px-3 py-2 text-sm border rounded-lg"
+                          type="number"
+                          value={nozzle.costPrice === 0 ? "" : nozzle.costPrice}
+                          onChange={(e) => {
+                            const v =
+                              e.target.value === ""
+                                ? 0
+                                : parseFloat(e.target.value)
+                            setPendingNozzles((prev) => {
+                              const copy = [...prev]
+                              copy[index] = { ...copy[index], costPrice: v }
+                              return copy
+                            })
+                          }}
+                          step="0.01"
+                          placeholder={t("pricePlaceholder") || "0,00"}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium mb-1">
+                          {t("installIndex") || "Index d'installation"}
+                        </label>
+                        <input
+                          type="number"
+                          value={
+                            nozzle.previousIndex === 0
+                              ? ""
+                              : nozzle.previousIndex
+                          }
+                          onChange={(e) => {
+                            const val =
+                              e.target.value === ""
+                                ? 0
+                                : parseFloat(e.target.value)
+                            setPendingNozzles((prev) => {
+                              const copy = [...prev]
+                              copy[index] = {
+                                ...copy[index],
+                                previousIndex: val,
+                                installIndex: val,
+                                nozzleNumber: index + 1,
+                              }
+                              return copy
+                            })
+                          }}
+                          disabled={
+                            isEditing &&
+                            !nozzle.isNew &&
+                            nozzle.currentIndex !== nozzle.previousIndex
+                          }
+                          className={`w-full px-3 py-2 text-sm border rounded-lg ${
+                            isEditing &&
+                            !nozzle.isNew &&
+                            nozzle.currentIndex !== nozzle.previousIndex
+                              ? "bg-gray-100 cursor-not-allowed"
+                              : ""
+                          }`}
+                          placeholder={t("indexPlaceholder") || "0"}
+                          title={
+                            isEditing &&
+                            !nozzle.isNew &&
+                            nozzle.currentIndex !== nozzle.previousIndex
+                              ? t("cannotEditNozzle")
+                              : ""
+                          }
+                        />
+                        <div className="text-xs text-gray-500 mt-1">
+                          {t("installIndex")}:{" "}
+                          {nozzle.installIndex ?? nozzle.previousIndex ?? 0}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium mb-1">
-                      {t("salePrice") || "Prix de Vente (MRU/L)"}
-                    </label>
-                    <input
-                      type="number"
-                      value={nozzle.salePrice === 0 ? "" : nozzle.salePrice}
-                      onChange={(e) => {
-                        const v =
-                          e.target.value === "" ? 0 : parseFloat(e.target.value)
-                        setPendingNozzles((prev) => {
-                          const copy = [...prev]
-                          copy[index] = { ...copy[index], salePrice: v }
-                          return copy
-                        })
-                      }}
-                      className="w-full px-3 py-2 text-sm border rounded-lg"
-                      step="0.01"
-                      placeholder={t("pricePlaceholder") || "0,00"}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1">
-                      {t("costPrice") || "Prix de Coût (MRU/L)"}
-                    </label>
-                    <input
-                      className="w-full px-3 py-2 text-sm border rounded-lg"
-                      type="number"
-                      value={nozzle.costPrice === 0 ? "" : nozzle.costPrice}
-                      onChange={(e) => {
-                        const v =
-                          e.target.value === "" ? 0 : parseFloat(e.target.value)
-                        setPendingNozzles((prev) => {
-                          const copy = [...prev]
-                          copy[index] = { ...copy[index], costPrice: v }
-                          return copy
-                        })
-                      }}
-                      step="0.01"
-                      placeholder={t("pricePlaceholder") || "0,00"}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium mb-1">
-                      {t("installIndex") || "Index d'installation"}
-                    </label>
-                    <input
-                      type="number"
-                      value={
-                        nozzle.previousIndex === 0 ? "" : nozzle.previousIndex
-                      }
-                      onChange={(e) => {
-                        const val =
-                          e.target.value === "" ? 0 : parseFloat(e.target.value)
-                        setPendingNozzles((prev) => {
-                          const copy = [...prev]
-                          copy[index] = {
-                            ...copy[index],
-                            previousIndex: val,
-                            installIndex: val,
-                            nozzleNumber: index + 1,
-                          }
-                          return copy
-                        })
-                      }}
-                      disabled={
-                        isEditing &&
-                        !nozzle.isNew &&
-                        nozzle.currentIndex !== nozzle.previousIndex
-                      }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg ${
-                        isEditing &&
-                        !nozzle.isNew &&
-                        nozzle.currentIndex !== nozzle.previousIndex
-                          ? "bg-gray-100 cursor-not-allowed"
-                          : ""
-                      }`}
-                      placeholder={t("indexPlaceholder") || "0"}
-                      title={
-                        isEditing &&
-                        !nozzle.isNew &&
-                        nozzle.currentIndex !== nozzle.previousIndex
-                          ? t("cannotEditNozzle")
-                          : ""
-                      }
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      {t("installIndex")}:{" "}
-                      {nozzle.installIndex ?? nozzle.previousIndex ?? 0}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+                </>
+              )
+            })}
           </div>
         )}
 

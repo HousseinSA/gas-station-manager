@@ -95,7 +95,7 @@ const UserManagementView = ({
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Mot de passe
+          test
         </label>
         <div className="relative">
           <input
@@ -178,22 +178,16 @@ const UserManagementView = ({
               d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
             />
           </svg>
-          <span className="hidden sm:inline">
-            {(t && t("manageUsers")) || "Gestion des Utilisateurs"}
-          </span>
-          <span className="sm:hidden">
-            {(t && t("usersTab")) || "Utilisateurs"}
-          </span>
+          <span className="hidden sm:inline">{t("manageUsers")}</span>
+          <span className="sm:hidden">{t("usersTab")}</span>
         </h2>
         <button
           onClick={() => setShowAddModal(true)}
           className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 transition-colors duration-200"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">
-            {(t && t("addUserBtn")) || "Ajouter Utilisateur"}
-          </span>
-          <span className="sm:inline">{(t && t("add")) || "Ajouter"}</span>
+          <span className="hidden sm:inline">{t("addUserBtn")}</span>
+          <span className="sm:inline">{t("add")}</span>
         </button>
       </div>
 
@@ -221,7 +215,7 @@ const UserManagementView = ({
                     />
                   </svg>
                   <span className="font-medium text-gray-700">
-                    {(t && t("stationsLabel")) || "Stations:"}
+                    {t("stationsLabel")}
                   </span>
                   <span className="text-gray-600">
                     {user.allowedStations
@@ -288,7 +282,7 @@ const UserManagementView = ({
                 d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
               />
             </svg>
-            {(t && t("noUsers")) || "Aucun utilisateur ajouté"}
+            {t("noUsers")}
           </div>
         )}
       </div>
@@ -300,7 +294,7 @@ const UserManagementView = ({
           setShowAddModal(false)
           setUserForm({ name: "", password: "", allowedStations: [] })
         }}
-        title={(t && t("newUserTitle")) || "Nouvel Utilisateur"}
+        title={t("newUserTitle")}
       >
         {UserFormContent()}
         <div className="flex gap-3 justify-end pt-6">
@@ -308,13 +302,13 @@ const UserManagementView = ({
             onClick={() => setShowAddModal(false)}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-gray-700"
           >
-            {(t && t("cancel")) || "Annuler"}
+            {t("cancel")}
           </button>
           <button
             onClick={handleAddUser}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
           >
-            {(t && t("add")) || "Ajouter"}
+            {t("add")}
           </button>
         </div>
       </Modal>
@@ -327,7 +321,7 @@ const UserManagementView = ({
           setEditingUser(null)
           setUserForm({ name: "", password: "", allowedStations: [] })
         }}
-        title={(t && t("editUserTitle")) || "Modifier Utilisateur"}
+        title={t("editUserTitle")}
       >
         {UserFormContent()}
         <div className="flex gap-3 justify-end pt-4">
@@ -338,13 +332,13 @@ const UserManagementView = ({
             }}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
-            {(t && t("cancel")) || "Annuler"}
+            {t("cancel")}
           </button>
           <button
             onClick={handleUpdateUser}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            {(t && t("edit")) || "Modifier"}
+            {t("edit")}
           </button>
         </div>
       </Modal>
