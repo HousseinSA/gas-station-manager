@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import "../globals.css"
-import LocaleSwitcher from "../components/LocaleSwitcher"
 import { NextIntlClientProvider } from "next-intl"
 import fs from "fs"
 import path from "path"

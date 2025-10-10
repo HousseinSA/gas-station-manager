@@ -1,6 +1,6 @@
 "use client"
 import React, { useState } from "react"
-import { Plus, Trash2, LogOut, Fuel } from "lucide-react"
+import { Plus, Trash2, LogOut, Fuel, Globe, UserIcon } from "lucide-react"
 
 import { useAuth } from "../hooks/useAuth"
 import { useStations, Nozzle } from "../hooks/useStations"
@@ -18,6 +18,7 @@ import PumpModal from "../components/PumpModal"
 import UserManagementView from "../components/UserManagementView"
 import Tanks from "../components/Tanks"
 import LocaleSwitcher from "../components/LocaleSwitcher"
+import { useTranslations } from "next-intl"
 
 interface PumpForm {
   id?: number
@@ -60,9 +61,7 @@ const GasStationApp = () => {
   } = useAuth()
   // Use next-intl hook to get translations in client components
   // `useTranslations` is a client hook from next-intl; function is injected via global helper earlier in migration
-  const t = (global as any).useTranslations
-    ? (global as any).useTranslations
-    : null
+  const t = useTranslations()
   const {
     stations,
     selectedStation,
@@ -291,29 +290,34 @@ const GasStationApp = () => {
               </h1>
             </div>
           </div>
+
           <div className="flex items-center gap-4">
             {isAdmin && (
               <button
                 onClick={() => setActiveTab("users")}
                 className="flex items-center gap-2 bg-green-700 px-4 py-2 rounded hover:bg-green-800"
               >
-                {(t && t("manageUsers")) || "Gérer Utilisateurs"}
+                {/* 👇 show icon always, hide text on small screens */}
+                <UserIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  {(t && t("manageUsers")) || "Gérer Utilisateurs"}
+                </span>
               </button>
             )}
-            {/* automatic daily commit active; manual commit button removed */}
+
             <button
               onClick={logout}
               className="flex items-center gap-2 bg-green-700 px-4 py-2 rounded hover:bg-green-800"
             >
               <LogOut className="w-4 h-4" />
-              {(t && t("signOut")) || "Déconnexion"}
+              <span className="hidden sm:inline">
+                {(t && t("signOut")) || "Déconnexion"}
+              </span>
             </button>
-            {/* Language selector (visible when logged in) */}
+
             <div className="pl-2">
-              {/* LocaleSwitcher is a client component */}
-              {/* eslint-disable-next-line @next/next/no-before-interactive-script-outside-document */}
-              {/* Render LocaleSwitcher dynamically */}
-              <LocaleSwitcher />
+              <LocaleSwitcher /> {/* full dropdown on larger screens */}
+              {/* 👇 compact icon-only switcher for mobile */}
             </div>
           </div>
         </div>
@@ -407,20 +411,20 @@ const GasStationApp = () => {
                 {[
                   {
                     id: "tableau-de-bord",
-                    label: (t && t("dashboardTab")) || "Tableau de Bord",
+                    label: t && t("dashboardTab"),
                   },
                   {
                     id: "reservoirs",
-                    label: (t && t("tanksTab")) || "Réservoirs",
+                    label: t && t("tanksTab"),
                   },
-                  { id: "pompes", label: (t && t("pumpsTab")) || "Pompes" },
+                  { id: "pompes", label: t && t("pumpsTab") },
                   {
                     id: "historique",
-                    label: (t && t("historyTab")) || "Historique",
+                    label: t && t("historyTab"),
                   },
                   {
                     id: "users",
-                    label: (t && t("usersTab")) || "Utilisateurs",
+                    label: t && t("usersTab"),
                     adminOnly: true,
                   },
                 ]

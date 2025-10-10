@@ -2,6 +2,7 @@
 import React, { useState } from "react"
 import { Trash2, Edit, Plus } from "lucide-react"
 import Modal from "./Modal"
+import { useTranslations } from "next-intl"
 
 interface User {
   id: number
@@ -25,9 +26,7 @@ const UserManagementView = ({
   onDeleteUser,
   onUpdateUser,
 }: UserManagementViewProps) => {
-  const t = (global as any).useTranslations
-    ? (global as any).useTranslations
-    : null
+  const t = useTranslations()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)

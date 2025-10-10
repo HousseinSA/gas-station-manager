@@ -148,9 +148,7 @@ const Pumps = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Fuel className="w-6 h-6 text-gray-600" />
-          <span className="hidden sm:inline">
-            {t("pumpsAndNozzles") || "Pompes & Pistolets"}
-          </span>
+          <span className="hidden sm:inline">{t("pumpsAndNozzles")}</span>
           <span className="sm:hidden">{t("pumps") || "Pompes"}</span>
         </h2>
         {isAdmin && (
@@ -172,7 +170,7 @@ const Pumps = ({
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">
-                {t("addPump") || "Ajouter Pompe"}
+                {t("addPump")}
               </span>
               <span className="sm:hidden">{t("add") || "Ajouter"}</span>
             </button>
@@ -334,7 +332,7 @@ const Pumps = ({
                       </div>
                     </div>
                     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200">
-                      <div className="grid grid-cols-3 gap-6">
+                      <div className="grid grid-cols-3 felx-wrap gap-6">
                         <div className="flex flex-col items-center p-2 rounded-lg bg-blue-50 border border-blue-100">
                           <span className="text-xs text-blue-600 font-medium mb-1">
                             Litres
@@ -377,7 +375,7 @@ const Pumps = ({
         ))}
         {pumps.length === 0 && (
           <div className="text-center text-gray-500 py-8 bg-gray-50 rounded-lg border border-gray-200">
-            Aucune pompe ajoutée
+           {t('noPumps')}
           </div>
         )}
       </div>

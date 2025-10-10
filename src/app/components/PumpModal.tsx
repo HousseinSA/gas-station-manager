@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react"
 import Modal from "./Modal"
 import { Station, Nozzle } from "../hooks/useStations"
 import { useTranslations } from "next-intl"
+import { Trash } from "lucide-react"
 
 interface PumpForm {
   id?: number
@@ -187,7 +188,7 @@ const PumpModal = ({
                           : t("delete")
                       }
                     >
-                      {t("delete")}
+                      <Trash className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -229,7 +230,7 @@ const PumpModal = ({
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1">
-                        {t("fuelType") || "Type de Carburant"}
+                        {t("fuelType") }
                       </label>
 
                       <div
@@ -239,11 +240,9 @@ const PumpModal = ({
                             : "bg-red-500"
                         }`}
                       >
-                        {currentStation?.tanks.find(
+                        { currentStation?.tanks.find(
                           (t) => t.id === nozzle.tankId
-                        )?.fuelType ||
-                          currentStation?.tanks[0]?.fuelType ||
-                          "Gasoil"}
+                        )?.fuelType || currentStation?.tanks[0]?.fuelType}
                       </div>
                     </div>
                   </div>
@@ -275,6 +274,7 @@ const PumpModal = ({
                       {t("costPrice") || "Prix de Coût (MRU/L)"}
                     </label>
                     <input
+                      className="w-full px-3 py-2 text-sm border rounded-lg"
                       type="number"
                       value={nozzle.costPrice === 0 ? "" : nozzle.costPrice}
                       onChange={(e) => {

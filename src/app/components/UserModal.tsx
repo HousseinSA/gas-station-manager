@@ -1,6 +1,7 @@
 "use client"
 import React, { useState } from "react"
 import Modal from "./Modal"
+import { useTranslations } from "next-intl"
 
 interface UserModalProps {
   show: boolean
@@ -19,9 +20,7 @@ const UserModal = ({ show, onClose, stations, onAddUser }: UserModalProps) => {
     password: "",
     allowedStations: [] as number[],
   })
-  const t = (global as any).useTranslations
-    ? (global as any).useTranslations
-    : null
+  const t = useTranslations()
 
   const handleSubmit = () => {
     if (!form.username || !form.password || form.allowedStations.length === 0) {

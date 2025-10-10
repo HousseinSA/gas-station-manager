@@ -1,7 +1,7 @@
 "use client"
 import React from "react"
 import { useTranslations } from "next-intl"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Edit } from "lucide-react"
 
 interface Tank {
   id: number
@@ -21,7 +21,7 @@ interface TanksProps {
 
 const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
   const t = useTranslations()
-
+  console.log("tanks data", tanks)
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 p-4">
       <div className="flex justify-between items-center mb-4">
@@ -34,7 +34,6 @@ const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
           <span className="hidden sm:inline">
             {t("add") + " " + t("tanks")}
           </span>
-          <span className="sm:inline">{t("add")}</span>
         </button>
       </div>
       <div className="space-y-4">
@@ -61,7 +60,7 @@ const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2">
                   <h3 className={`${titleClass} flex items-center gap-2`}>
-                    <span>{tank.name}</span>
+                    <span>{tank.name.toUpperCase()}</span>
                     <span
                       className={`${
                         tank.fuelType === "Gasoil"
@@ -69,7 +68,7 @@ const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
                           : "text-red-600"
                       }`}
                     >
-                      {tank.fuelType}
+                      {t(tank.fuelType.toLowerCase())}
                     </span>
                   </h3>
                 </div>
@@ -79,47 +78,41 @@ const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
                       onClick={() => onEditTank(tank.id)}
                       className="text-blue-600 hover:text-blue-700"
                     >
-                      {t("edit") || "Éditer"}
+                      <Edit className="w-5 h-5" />
                     </button>
                   )}
                   <button
                     onClick={() => {
-                      const msg =
-                        t("confirmDeleteTank") ||
-                        `Voulez-vous vraiment supprimer le réservoir ${tank.name} ?`
+                      const msg = t("confirmDeleteTank")
                       if (confirm(msg)) onDeleteTank(tank.id)
                     }}
                     className="text-red-600 hover:text-red-700"
-                    title={t("deleteTankTitle") || `Supprimer ${tank.name}`}
+                    title={t("deleteTankTitle")}
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">
-                    {t("capacity") || "Capacité:"}
-                  </span>{" "}
-                  {tank.capacity.toLocaleString()} L
+                <div className="flex flex-row-reverse gap-1 justify-end">
+                  <span className="text-gray-600">{t("capacity")}</span>
+                  <span dir="ltr">{tank.capacity.toLocaleString()} L</span>
                 </div>
-                <div>
-                  <span className="text-gray-600">
-                    {t("currentLevel") || "Niveau actuel:"}
-                  </span>{" "}
-                  {tank.currentLevel.toFixed(2)} L
+                <div className="flex flex-row-reverse gap-1 justify-end">
+                  <span className="text-gray-600">{t("currentLevel")}</span>
+                  <span dir="ltr">{tank.currentLevel.toFixed(2)} L</span>
                 </div>
-                <div>
-                  <span className="text-gray-600">
-                    {t("dateAdded") || "Date d'ajout:"}
-                  </span>{" "}
-                  {new Date(tank.dateAdded).toLocaleDateString("fr-FR")}
+                <div className="flex flex-row-reverse gap-1 justify-end">
+                  <span className="text-gray-600">{t("dateAdded")}</span>
+                  <span dir="ltr">
+                    {new Date(tank.dateAdded).toLocaleDateString("fr-FR")}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-gray-600">
-                    {t("fillRate") || "Taux de remplissage:"}
-                  </span>{" "}
-                  {((tank.currentLevel / tank.capacity) * 100).toFixed(1)}%
+                <div className="flex flex-row-reverse gap-1 justify-end">
+                  <span className="text-gray-600">{t("fillRate")}</span>
+                  <span dir="ltr">
+                    {((tank.currentLevel / tank.capacity) * 100).toFixed(1)}%
+                  </span>
                 </div>
               </div>
               <div className="mt-3 bg-gray-200 rounded-full h-3">
