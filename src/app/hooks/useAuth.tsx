@@ -23,7 +23,7 @@ export function useAuth() {
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    fetch("/api/users", { credentials: "include" })
+    fetch("/api/users?includePassword=true", { credentials: "include" })
       .then((r) => r.json())
       .then((data: any) => setUsers(data || []))
       .catch(() => {})

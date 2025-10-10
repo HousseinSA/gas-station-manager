@@ -28,7 +28,7 @@ const Login = ({ onLogin }: LoginProps) => {
           <Fuel className="w-12 h-12 text-green-600" />
         </div>
         <h1 className="text-2xl font-bold text-center mb-2">{t("appTitle")}</h1>
-        <p className="text-center text-gray-600 mb-6">{t("stationsService")}</p>
+        {/* <p className="text-center text-gray-600 mb-6">{t("stationsService")}</p> */}
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">

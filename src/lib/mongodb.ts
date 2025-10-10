@@ -9,6 +9,9 @@ let cachedClient: MongoClient | null = null
 
 export async function getMongoClient() {
   if (cachedClient) return cachedClient
+  if (!uri) {
+    throw new Error("MONGODB_URI is not configured. Please set MONGODB_URI environment variable.")
+  }
   const client = new MongoClient(uri)
   await client.connect()
   cachedClient = client
