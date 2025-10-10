@@ -368,20 +368,13 @@ const GasStationApp = () => {
                       )
 
                       if (usersWithAccess.length > 0) {
-                        // Remove non-admin users who only had this station
+                        // Remove the deleted station from each affected user's allowedStations
+                        // Keep users even if they end up with no stations, so admin can reassign later
                         usersWithAccess.forEach((user) => {
-                          // If user is admin (shouldn't be in users list), skip
-                          // remove station from their allowedStations
                           const remaining = user.allowedStations.filter(
                             (s) => s !== Number(stationIdToDelete as any)
                           )
-                          if (remaining.length === 0) {
-                            // delete the user (they no longer have stations)
-                            deleteUser(user.id)
-                          } else {
-                            // otherwise update their allowed stations
-                            updateUser(user.id, { allowedStations: remaining })
-                          }
+                          updateUser(user.id, { allowedStations: remaining })
                         })
                       }
                       if (
