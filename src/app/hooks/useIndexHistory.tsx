@@ -4,6 +4,7 @@ import React from "react"
 
 interface IndexUpdate {
   timestamp: string
+  stationId?: number | string
   nozzleId: number
   pumpId: number
   previousIndex: number
@@ -36,7 +37,7 @@ interface DailyMetrics {
   }
 }
 
-export function useIndexHistory() {
+export function useIndexHistory(stationId: number | null = null) {
   const [indexHistory, setIndexHistory] = React.useState<IndexUpdate[]>([])
   const [dailyMetrics, setDailyMetrics] = React.useState<{
     [date: string]: DailyMetrics
@@ -201,11 +202,27 @@ export function useIndexHistory() {
     })
   }
 
-  const getDailyMetrics = (date: string) => {
-    // Get all updates for this date
-    const updatesForDate = indexHistory.filter(
+  const getDailyMetrics = (date: string, currentStationId?: number | string) => {
+    // Get all updates for this date, optionally filtered by station ID
+    let updatesForDate = indexHistory.filter(
       (u) => u.timestamp.split("T")[0] === date
     )
+    
+    // Filter by station ID if provided
+    if (currentStationId !== undefined) {
+      const beforeCount = updatesForDate.length
+      updatesForDate = updatesForDate.filter(u => 
+        String(u.stationId) === String(currentStationId)
+      )
+      
+      // Debug: Log filtering results
+      if (beforeCount > 0) {
+        console.log(`Station ${currentStationId}: Filtered ${beforeCount} updates to ${updatesForDate.length} for date ${date}`)
+        if (updatesForDate.length === 0) {
+          console.log('Sample of filtered out updates:', indexHistory.filter(u => u.timestamp.split("T")[0] === date).slice(0, 2))
+        }
+      }
+    }
 
     if (updatesForDate.length === 0) {
       return null

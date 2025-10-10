@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 
 interface TankLevel {
   timestamp: string
+  stationId?: number | string
   tankId: number
   previousLevel: number
   currentLevel: number
@@ -146,18 +147,26 @@ export function useTankHistory(stationId: number | null) {
     })
   }
 
-  const getDailyTankStatus = (date: string, tankId: number) => {
+  const getDailyTankStatus = (date: string, tankId: number, currentStationId?: number | string) => {
     // Always recalculate from history to ensure accuracy
-    const updatesForDay = tankHistory
+    let updatesForDay = tankHistory
       .filter(
         (h) =>
           h.tankId === tankId &&
           new Date(h.timestamp).toISOString().split("T")[0] === date
       )
-      .sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    
+    // Filter by station ID if provided
+    if (currentStationId !== undefined) {
+      updatesForDay = updatesForDay.filter(h => 
+        String(h.stationId) === String(currentStationId)
       )
+    }
+    
+    updatesForDay = updatesForDay.sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    )
 
     if (updatesForDay.length === 0) {
       return null
@@ -234,15 +243,23 @@ export function useTankHistory(stationId: number | null) {
   const updateTankFromPumpUsage = (
     tankId: number,
     litersDispensed: number,
-    prevTankLevel?: number
+    prevTankLevel?: number,
+    stationId?: number | string
   ) => {
     // Get all updates for this tank, ordered by time
-    const updates = tankHistory
+    let updates = tankHistory
       .filter((h) => h.tankId === tankId)
       .sort(
         (a, b) =>
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       )
+    
+    // Filter by station ID if provided
+    if (stationId !== undefined) {
+      updates = updates.filter(h => 
+        String(h.stationId) === String(stationId)
+      )
+    }
 
     // Get last known state
     const lastUpdate = [...updates].reverse()[0]

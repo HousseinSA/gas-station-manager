@@ -56,6 +56,7 @@ const UserManagementView = ({
     setUserForm({ name: "", password: "", allowedStations: [] })
     setShowAddModal(false)
   }
+  console.log('users info',users)
 
   const handleUpdateUser = () => {
     if (!editingUser) return

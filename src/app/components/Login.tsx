@@ -20,7 +20,7 @@ const Login = ({ onLogin }: LoginProps) => {
 
   return (
     <div className="min-h-screen relative  flex items-center justify-center p-4">
-      <div className="absolute top-10 left-10">
+      <div className="absolute top-10 right-0 pr-4 text-white">
         <LocaleSwitcher />
       </div>
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">

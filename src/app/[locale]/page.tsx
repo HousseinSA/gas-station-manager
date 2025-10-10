@@ -80,7 +80,7 @@ const GasStationApp = () => {
     commitAllNozzles,
   } = useStations()
   const metrics = useMetrics(currentStation)
-  const indexHistory = useIndexHistory()
+  const indexHistory = useIndexHistory(currentStation?.id || null)
   const tankHistory = useTankHistory(currentStation?.id || null)
   // Ref map to track the latest known currentIndex for each nozzle immediately
   // (avoids relying on async setState or indexHistory state flushing).
@@ -441,13 +441,13 @@ const GasStationApp = () => {
             </div>
 
             {/* Dashboard */}
-            {activeTab === "tableau-de-bord" && (
+            {activeTab === "tableau-de-bord" && currentStation && (
               <Dashboard
                 metrics={
-                  indexHistory.getDailyMetrics(selectedDate) || {
-                    totalRevenue: metrics.totalRevenue,
-                    totalProfit: metrics.totalProfit,
-                    totalLiters: metrics.totalLiters,
+                  indexHistory.getDailyMetrics(selectedDate, currentStation?.id ?? (currentStation as any)?._id) || {
+                    totalRevenue: 0,
+                    totalProfit: 0,
+                    totalLiters: 0,
                   }
                 }
               />
@@ -530,6 +530,7 @@ const GasStationApp = () => {
 
                   // Create index history (uses committed previousIndex for daily totals)
                   indexHistory.addIndexUpdate({
+                    stationId: currentStation.id ?? (currentStation as any)._id,
                     nozzleId,
                     pumpId,
                     previousIndex: nozzle.previousIndex, // Use committed previousIndex
@@ -548,11 +549,13 @@ const GasStationApp = () => {
                       tankHistory.updateTankFromPumpUsage(
                         nozzle.tankId,
                         incrementalLiters,
-                        prevTankLevel
+                        prevTankLevel,
+                        currentStation.id ?? (currentStation as any)._id
                       )
                     } else {
                       // Correction (user decreased index) - add fuel back to tank
                       tankHistory.addTankUpdate({
+                        stationId: currentStation.id ?? (currentStation as any)._id,
                         tankId: nozzle.tankId,
                         previousLevel: prevTankLevel || 0,
                         currentLevel: (prevTankLevel || 0) + incrementalLiters,
@@ -586,11 +589,11 @@ const GasStationApp = () => {
                   currentStation.pumps.map((p) => [p.id, p.pumpNumber])
                 )}
                 onDateChange={setSelectedDate}
-                metrics={indexHistory.getDailyMetrics(selectedDate)}
+                metrics={indexHistory.getDailyMetrics(selectedDate, currentStation?.id ?? (currentStation as any)?._id)}
                 tankStatuses={Object.fromEntries(
                   currentStation.tanks.map((tank) => [
                     tank.id,
-                    tankHistory.getDailyTankStatus(selectedDate, tank.id) || {
+                    tankHistory.getDailyTankStatus(selectedDate, tank.id, currentStation?.id ?? (currentStation as any)?._id) || {
                       date: selectedDate,
                       tankId: tank.id,
                       startLevel: tank.currentLevel,
@@ -684,6 +687,7 @@ const GasStationApp = () => {
                   const refillAmount = newLevel - existingTank.currentLevel
                   // record refill in tank history so Total rempli increases
                   tankHistory.addTankUpdate({
+                    stationId: currentStation.id ?? (currentStation as any)._id,
                     tankId: existingTank.id,
                     previousLevel: existingTank.currentLevel,
                     currentLevel: newLevel,
@@ -698,6 +702,7 @@ const GasStationApp = () => {
                   const withdrawn = existingTank.currentLevel - newLevel
                   // record manual withdrawal so Total retiré increases
                   tankHistory.addTankUpdate({
+                    stationId: currentStation.id ?? (currentStation as any)._id,
                     tankId: existingTank.id,
                     previousLevel: existingTank.currentLevel,
                     currentLevel: newLevel,
