@@ -327,14 +327,7 @@ export function useStations() {
     newIndex: number,
     prevForCalculation?: number
   ): { prevIndex: number; liters: number; prevTankLevel?: number } | null => {
-    console.log(`[useStations] updateNozzleIndex called`, {
-      stationId,
-      pumpId,
-      nozzleId,
-      newIndex,
-      prevForCalculation,
-    })
-
+   
     // Find the station, pump, and nozzle
     const station = stations.find((s) => idEquals(s.id ?? s._id, stationId))
     if (!station) return null
@@ -351,15 +344,7 @@ export function useStations() {
     const delta = newIndex - baselinePrev
     const liters = delta > 0 ? delta : 0 // Only count positive changes as real dispensing
 
-    console.log("[useStations] Calculating tank changes:", {
-      nozzleId,
-      baselinePrev,
-      newIndex,
-      delta,
-      liters,
-      tankId: nozzle.tankId,
-    })
-
+    
     const isDispensing = delta > 0
     const litersRequired = isDispensing ? liters : 0
 
@@ -371,11 +356,7 @@ export function useStations() {
       const tank = station.tanks.find((t) => t.id === nozzle.tankId)
       if (!tank) return null
       if (tank.currentLevel < litersRequired) {
-        console.log("[useStations] update blocked: insufficient tank fuel", {
-          tankId: tank.id,
-          available: tank.currentLevel,
-          required: litersRequired,
-        })
+      
         return null
       }
     }

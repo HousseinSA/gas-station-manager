@@ -77,12 +77,7 @@ export function useIndexHistory() {
       previousIndex: baseIndex, // Use tracked committed value
     }
 
-    console.log("[useIndexHistory] Adding update:", {
-      nozzleId: update.nozzleId,
-      baseIndex,
-      currentIndex: update.currentIndex,
-      liters: update.liters,
-    })
+    
 
     setIndexHistory((prev) => {
       const updated = [...prev, newUpdate]
@@ -166,14 +161,7 @@ export function useIndexHistory() {
         const revenue = liters * state.salePrice
         const profit = revenue - liters * state.costPrice
 
-        console.log("[useIndexHistory] Calculating nozzle metrics:", {
-          nozzleId,
-          firstPreviousIndex: state.firstPreviousIndex,
-          latestCurrentIndex: state.latestCurrentIndex,
-          netDelta,
-          liters,
-          revenue,
-        })
+        
 
         // Initialize pump if needed
         if (!dayMetrics.byPump[state.pumpId]) {

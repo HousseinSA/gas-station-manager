@@ -160,11 +160,11 @@ const GasStationApp = () => {
   // ───── Handlers ─────
   const handleLogin = async (password: string) => {
     const ok = await login(password)
+    console.log(ok, "login result")
     if (!ok) {
       alert(
         // Use t() if available, otherwise fallback to FR
-        (t && t("adminPasswordIncorrect")) ||
-          "Mot de passe incorrect ! Pour admin: admin123"
+        (t && t("adminPasswordIncorrect")) || "Mot de passe incorrect"
       )
     }
   }
@@ -189,10 +189,6 @@ const GasStationApp = () => {
     capacity: number
     currentLevel: number
   }) => {
-    console.log("[page] handleAddTank called", {
-      currentStationId: currentStation?.id,
-      payload,
-    })
     if (!currentStation || !payload.name.trim() || !payload.capacity) return
     addTank(Number(currentStation.id ?? (currentStation as any)._id), {
       name: payload.name,

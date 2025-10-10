@@ -20,7 +20,6 @@ interface TanksProps {
 }
 
 const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
-  console.log("tanks", tanks)
   const t = useTranslations()
 
   return (

@@ -1,9 +1,25 @@
 import type { Metadata } from "next"
 import "./globals.css"
-// LocaleSwitcher removed from global layout to avoid showing the selector on the login page.
 import { NextIntlClientProvider } from "next-intl"
 import fs from "fs"
 import path from "path"
+
+// ✅ Import Google Fonts via next/font/google
+import { Tajawal, Inter } from "next/font/google"
+
+const tajawal = Tajawal({
+  subsets: ["arabic"],
+  variable: "--font-tajawal",
+  weight: ["300", "400", "500", "700", "800"],
+  display: "swap",
+})
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  weight: ["300", "400", "500", "700"],
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   title: "Gestion Stations-Service",
@@ -25,7 +41,6 @@ export default async function RootLayout({
 }>) {
   const locale = getLocaleFromCookie(headers ?? new Headers())
 
-  // Try messages folder first (project_root/messages), otherwise fallback to locales
   const tryPaths = [
     path.join(process.cwd(), "messages", `${locale}.json`),
     path.join(process.cwd(), "locales", `${locale}.json`),
@@ -43,9 +58,15 @@ export default async function RootLayout({
     }
   }
 
+  const fontClass = locale === "ar" ? tajawal.variable : inter.variable
+
   return (
-    <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
-      <body>
+    <html
+      lang={locale}
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      className={`${fontClass}`}
+    >
+      <body className="font-sans bg-gray-50 text-gray-900">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

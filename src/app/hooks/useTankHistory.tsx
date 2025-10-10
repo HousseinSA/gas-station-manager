@@ -196,16 +196,6 @@ export function useTankHistory(stationId: number | null) {
       }
     })
 
-    console.log("[useTankHistory] getDailyTankStatus calculated:", {
-      date,
-      tankId,
-      startLevel,
-      endLevel,
-      totalWithdrawn,
-      totalRefilled,
-      updatesCount: updatesForDay.length,
-    })
-
     return {
       date,
       tankId,
@@ -259,13 +249,6 @@ export function useTankHistory(stationId: number | null) {
     const baseLevel = lastUpdate?.currentLevel ?? prevTankLevel
 
     if (baseLevel === undefined || baseLevel === null) return
-
-    console.log("[useTankHistory] updateTankFromPumpUsage:", {
-      tankId,
-      baseLevel,
-      litersDispensed,
-      prevTankLevel,
-    })
 
     // Calculate new level
     const newLevel = baseLevel - litersDispensed

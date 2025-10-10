@@ -12,6 +12,9 @@ const config: Config = {
         primary: "var(--color-primary)",
         "primary-light": "var(--color-primary-light)",
       },
+      fontFamily: {
+        sans: ["var(--font-inter)", "var(--font-tajawal)"],
+      },
     },
   },
   plugins: [],

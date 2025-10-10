@@ -237,14 +237,6 @@ const Pumps = ({
                 const costPrice = Number(nozzle.costPrice) || 0
                 const revenue = liters * salePrice
                 const profit = revenue - liters * costPrice
-                // Debug small values to help trace issues in dev console
-                console.log("[Pumps] computed", {
-                  pumpId: pump.id,
-                  nozzleId: nozzle.id,
-                  liters,
-                  revenue,
-                  profit,
-                })
 
                 return (
                   <div key={nozzle.id} className="bg-gray-50 rounded p-3 mb-2">

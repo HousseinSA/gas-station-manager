@@ -35,7 +35,6 @@ const PumpModal = ({
   const t = useTranslations()
   const [pendingNozzles, setPendingNozzles] = useState<Nozzle[]>([])
   const [pendingCount, setPendingCount] = useState<number>(1)
-  console.log("current station", currentStation?.tanks[0]?.fuelType)
   useEffect(() => {
     if (show) {
       const initialCount = pumpForm.nozzleCount
