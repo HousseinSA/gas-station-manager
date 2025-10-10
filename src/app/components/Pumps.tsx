@@ -1,6 +1,6 @@
 "use client"
 import React from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { Plus, Trash2, Edit, Fuel } from "lucide-react"
 import { Tank } from "../hooks/useStations"
 
@@ -143,8 +143,12 @@ const Pumps = ({
       </div>
     )
   }
+  const locale = useLocale()
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4">
+    <div
+      className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4"
+      dir={`${locale === "ar" ? "rtl" : "ltr"}`}
+    >
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Fuel className="w-6 h-6 text-gray-600" />
@@ -169,9 +173,7 @@ const Pumps = ({
               }`}
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">
-                {t("addPump")}
-              </span>
+              <span className="hidden sm:inline">{t("addPump")}</span>
               <span className="sm:hidden">{t("add") || "Ajouter"}</span>
             </button>
           </div>
@@ -264,16 +266,17 @@ const Pumps = ({
                                   : "text-gray-800"
                               }`}
                             >
-                              Pistolet {nozzle.nozzleNumber} - {nozzle.fuelType}
+                              {t("Pistolet")} {nozzle.nozzleNumber} -{" "}
+                              {t(nozzle.fuelType.toLowerCase())}
                             </span>
                             <span className="text-xs text-gray-500">
-                              (Install index:{" "}
+                              {t("installIndex")}:{" "}
                               {nozzle.installIndex ?? nozzle.previousIndex})
                             </span>
                           </div>
                           <div className="flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200">
                             <span className=" text-sm font-semibold text-gray-600">
-                              Réservoir:
+                              {t("tank")}:
                             </span>
                             <span
                               className={`${
@@ -295,7 +298,7 @@ const Pumps = ({
                                   : "Réservoir non assigné"
                               }
                             >
-                              {tank?.name || "Réservoir non assigné"}
+                              {tank?.name.toUpperCase()}
                             </span>
                           </div>
                         </div>
@@ -335,23 +338,29 @@ const Pumps = ({
                       <div className="grid grid-cols-3 felx-wrap gap-6">
                         <div className="flex flex-col items-center p-2 rounded-lg bg-blue-50 border border-blue-100">
                           <span className="text-xs text-blue-600 font-medium mb-1">
-                            Litres
+                            {t("PistolData.Litres")}
                           </span>
-                          <span className="font-semibold text-blue-700">
+                          <span
+                            className="font-semibold text-blue-700"
+                            dir="ltr"
+                          >
                             {liters.toFixed(2)} L
                           </span>
                         </div>
                         <div className="flex flex-col items-center p-2 rounded-lg bg-indigo-50 border border-indigo-100">
                           <span className="text-xs text-indigo-600 font-medium mb-1">
-                            Revenu
+                            {t("PistolData.Revenu")}
                           </span>
-                          <span className="font-semibold text-indigo-700">
+                          <span
+                            className="font-semibold text-indigo-700"
+                            dir="ltr"
+                          >
                             {formatCurrency(revenue)} MRU
                           </span>
                         </div>
                         <div className="flex flex-col items-center p-2 rounded-lg bg-gray-50 border border-gray-100">
                           <span className="text-xs text-gray-600 font-medium mb-1">
-                            Bénéfice
+                            {t("PistolData.Bénéfice")}
                           </span>
                           <span
                             className={`font-semibold ${
@@ -361,6 +370,7 @@ const Pumps = ({
                                 ? "text-red-500"
                                 : "text-gray-700"
                             }`}
+                            dir="ltr"
                           >
                             {formatCurrency(profit)} MRU
                           </span>
@@ -375,7 +385,7 @@ const Pumps = ({
         ))}
         {pumps.length === 0 && (
           <div className="text-center text-gray-500 py-8 bg-gray-50 rounded-lg border border-gray-200">
-           {t('noPumps')}
+            {t("noPumps")}
           </div>
         )}
       </div>
