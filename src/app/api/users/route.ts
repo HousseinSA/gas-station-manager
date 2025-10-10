@@ -83,8 +83,11 @@ export async function DELETE(req: Request) {
   
   const db = await getDb()
   
-  // Try to delete by id first, then by _id
-  let result = await db.collection("users").deleteOne({ id: idParam })
+  // Try to delete by id first (as number), then as string, then by _id
+  let result = await db.collection("users").deleteOne({ id: Number(idParam) })
+  if (result.deletedCount === 0) {
+    result = await db.collection("users").deleteOne({ id: idParam })
+  }
   if (result.deletedCount === 0) {
     try {
       result = await db.collection("users").deleteOne({ _id: new ObjectId(idParam) })

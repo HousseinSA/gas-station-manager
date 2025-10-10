@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ ok: false }, { status: 401 })
   const res = NextResponse.json({
     ok: true,
-    user: { id: user.id, name: user.name },
+    user: { id: user.id, name: user.name, isAdmin: user.isAdmin, allowedStations: user.allowedStations || [] },
   })
   res.headers.set(
     "Set-Cookie",
@@ -83,6 +83,6 @@ export async function GET(req: Request) {
 
   if (!user) return NextResponse.json({ user: null })
   return NextResponse.json({
-    user: { id: user.id ?? user._id, name: user.name, isAdmin: user.isAdmin },
+    user: { id: user.id ?? user._id, name: user.name, isAdmin: user.isAdmin, allowedStations: user.allowedStations || [] },
   })
 }

@@ -130,7 +130,7 @@ export function useAuth() {
 
   const getUsers = () => {
     if (!currentUser?.isAdmin) return []
-    return users.filter((u) => !u.isAdmin)
+    return users // Show all users, including admin users
   }
 
   const canAccessStation = (stationId: number) => {

@@ -9,6 +9,7 @@ interface User {
   name: string
   password: string
   allowedStations: number[]
+  isAdmin: boolean
 }
 
 interface UserManagementViewProps {
@@ -52,6 +53,7 @@ const UserManagementView = ({
       name: userForm.name,
       password: userForm.password,
       allowedStations: userForm.allowedStations,
+      isAdmin: false, // New users are never admin
     })
     setUserForm({ name: "", password: "", allowedStations: [] })
     setShowAddModal(false)
@@ -60,21 +62,35 @@ const UserManagementView = ({
 
   const handleUpdateUser = () => {
     if (!editingUser) return
-    if (
-      !userForm.name ||
-      !userForm.password ||
-      userForm.allowedStations.length === 0
-    ) {
-      alert(
-        "Veuillez remplir tous les champs et sélectionner au moins une station"
-      )
-      return
+    
+    // For admin users, only validate password
+    if (editingUser.isAdmin) {
+      if (!userForm.password) {
+        alert("Veuillez entrer le mot de passe")
+        return
+      }
+      onUpdateUser(editingUser.id, {
+        password: userForm.password,
+      })
+    } else {
+      // For regular users, validate all fields
+      if (
+        !userForm.name ||
+        !userForm.password ||
+        userForm.allowedStations.length === 0
+      ) {
+        alert(
+          "Veuillez remplir tous les champs et sélectionner au moins une station"
+        )
+        return
+      }
+      onUpdateUser(editingUser.id, {
+        name: userForm.name,
+        password: userForm.password,
+        allowedStations: userForm.allowedStations,
+      })
     }
-    onUpdateUser(editingUser.id, {
-      name: userForm.name,
-      password: userForm.password,
-      allowedStations: userForm.allowedStations,
-    })
+    
     setEditingUser(null)
     setUserForm({ name: "", password: "", allowedStations: [] })
     setShowEditModal(false)
@@ -90,13 +106,19 @@ const UserManagementView = ({
           type="text"
           value={userForm.name}
           onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors duration-200"
+          disabled={editingUser?.isAdmin}
+          className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors duration-200 ${
+            editingUser?.isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+          }`}
           placeholder="Entrez le nom d'utilisateur"
         />
+        {editingUser?.isAdmin && (
+          <p className="text-sm text-gray-500 mt-1">Le nom de l'administrateur ne peut pas être modifié</p>
+        )}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          test
+          Mot de passe
         </label>
         <div className="relative">
           <input
@@ -117,48 +139,62 @@ const UserManagementView = ({
           </button>
         </div>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Stations autorisées
-        </label>
-        <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
-          {stations.map((station) => (
-            <label
-              key={station.id}
-              className="flex items-center p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 cursor-pointer group"
-            >
-              <div className="relative flex items-center">
-                <input
-                  type="checkbox"
-                  checked={userForm.allowedStations.includes(station.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setUserForm({
-                        ...userForm,
-                        allowedStations: [
-                          ...userForm.allowedStations,
-                          station.id,
-                        ],
-                      })
-                    } else {
-                      setUserForm({
-                        ...userForm,
-                        allowedStations: userForm.allowedStations.filter(
-                          (id) => id !== station.id
-                        ),
-                      })
-                    }
-                  }}
-                  className="w-5 h-5 border-2 border-gray-300 rounded text-green-600 focus:ring-green-500/20 focus:ring-2 transition-colors duration-200"
-                />
-                <span className="ml-3 text-gray-700 group-hover:text-gray-900 transition-colors duration-200">
-                  {station.name}
-                </span>
-              </div>
-            </label>
-          ))}
+      {!editingUser?.isAdmin && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Stations autorisées
+          </label>
+          <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+            {stations.map((station) => (
+              <label
+                key={station.id}
+                className="flex items-center p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 cursor-pointer group"
+              >
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={userForm.allowedStations.includes(station.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setUserForm({
+                          ...userForm,
+                          allowedStations: [
+                            ...userForm.allowedStations,
+                            station.id,
+                          ],
+                        })
+                      } else {
+                        setUserForm({
+                          ...userForm,
+                          allowedStations: userForm.allowedStations.filter(
+                            (id) => id !== station.id
+                          ),
+                        })
+                      }
+                    }}
+                    className="w-5 h-5 border-2 border-gray-300 rounded text-green-600 focus:ring-green-500/20 focus:ring-2 transition-colors duration-200"
+                  />
+                  <span className="ml-3 text-gray-700 group-hover:text-gray-900 transition-colors duration-200">
+                    {station.name}
+                  </span>
+                </div>
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+      {editingUser?.isAdmin && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <p className="text-sm text-blue-800">
+              L'administrateur a accès à toutes les stations automatiquement.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -200,31 +236,45 @@ const UserManagementView = ({
           >
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="font-bold text-gray-900 text-lg">{user.name}</h3>
-                <div className="text-sm text-gray-600 mt-2 flex items-center gap-1">
-                  <svg
-                    className="w-4 h-4 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
-                  <span className="font-medium text-gray-700">
-                    {t("stationsLabel")}
-                  </span>
-                  <span className="text-gray-600">
-                    {user.allowedStations
-                      .map((id) => stations.find((s) => s.id === id)?.name)
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-bold text-gray-900 text-lg">{user.name}</h3>
+                  {user.isAdmin && (
+                    <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">
+                      Admin
+                    </span>
+                  )}
                 </div>
+                {!user.isAdmin && (
+                  <div className="text-sm text-gray-600 mt-2 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                      />
+                    </svg>
+                    <span className="font-medium text-gray-700">
+                      {t("stationsLabel")}
+                    </span>
+                    <span className="text-gray-600">
+                      {user.allowedStations
+                        .map((id) => stations.find((s) => s.id === id)?.name)
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                  </div>
+                )}
+                {user.isAdmin && (
+                  <div className="text-sm text-gray-600 mt-2">
+                    <span className="font-medium text-gray-700">Accès complet à toutes les stations</span>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <button
@@ -241,28 +291,35 @@ const UserManagementView = ({
                 >
                   <Edit className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Êtes-vous sûr de vouloir supprimer cet utilisateur ?"
-                      )
-                    ) {
-                      onDeleteUser(user.id)
-                      setUserForm({
-                        name: "",
-                        password: "",
-                        allowedStations: [],
-                      })
-                      setEditingUser(null)
-                      setShowEditModal(false)
-                      setShowAddModal(false)
-                    }
-                  }}
-                  className="p-1.5 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors duration-200"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+                {!user.isAdmin && (
+                  <button
+                    onClick={() => {
+                      if (
+                        confirm(
+                          "Êtes-vous sûr de vouloir supprimer cet utilisateur ?"
+                        )
+                      ) {
+                        onDeleteUser(user.id)
+                        setUserForm({
+                          name: "",
+                          password: "",
+                          allowedStations: [],
+                        })
+                        setEditingUser(null)
+                        setShowEditModal(false)
+                        setShowAddModal(false)
+                      }
+                    }}
+                    className="p-1.5 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors duration-200"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
+                {user.isAdmin && (
+                  <div className="p-1.5 rounded-md text-gray-400 cursor-not-allowed" title="L'administrateur ne peut pas être supprimé">
+                    <Trash2 className="w-5 h-5" />
+                  </div>
+                )}
               </div>
             </div>
             {/* No permission fields */}
