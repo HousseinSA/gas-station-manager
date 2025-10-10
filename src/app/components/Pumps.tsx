@@ -1,5 +1,6 @@
 "use client"
 import React from "react"
+import { useTranslations } from "next-intl"
 import { Plus, Trash2, Edit, Fuel } from "lucide-react"
 import { Tank } from "../hooks/useStations"
 
@@ -34,6 +35,7 @@ interface PumpsProps {
   ) => void
   formatCurrency: (value: number) => string
   setPumpForm: (form: {
+    id?: number
     pumpNumber: string
     nozzleCount: string
     nozzles: Nozzle[]
@@ -55,6 +57,8 @@ const Pumps = ({
   tanks,
 }: PumpsProps) => {
   // Local subcomponent to manage editable nozzle index draft state
+  const t = useTranslations()
+
   const NozzleRow: React.FC<{
     nozzle: Nozzle
     pumpId: number
@@ -78,7 +82,10 @@ const Pumps = ({
       }
       // Allow decreasing to correct mistakes, but never accept below previousIndex
       if (newValue < nozzle.previousIndex) {
-        alert("L'index ne peut pas être inférieur à l'index précédent.")
+        alert(
+          t("indexCannotBeLower") ||
+            "L'index ne peut pas être inférieur à l'index précédent."
+        )
         setDraft(String(nozzle.currentIndex))
         return
       }
@@ -116,12 +123,15 @@ const Pumps = ({
               }
             `}
             min={nozzle.previousIndex}
-            placeholder={`Min: ${nozzle.previousIndex}`}
+            placeholder={`${
+              (t("minLabel") || "Min:") + " " + nozzle.previousIndex
+            }`}
             disabled={isEmpty}
             title={
               isEmpty
-                ? "Réservoir vide - impossible d'augmenter l'index"
-                : `Min: ${nozzle.previousIndex}`
+                ? t("reservoirEmptyCannotIncrease") ||
+                  "Réservoir vide - impossible d'augmenter l'index"
+                : (t("minLabel") || "Min:") + " " + nozzle.previousIndex
             }
           />
           <div className="absolute -top-2 -left-2">
@@ -138,8 +148,10 @@ const Pumps = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Fuel className="w-6 h-6 text-gray-600" />
-          <span className="hidden sm:inline">Pompes & Pistolets</span>
-          <span className="sm:hidden">Pompes</span>
+          <span className="hidden sm:inline">
+            {t("pumpsAndNozzles") || "Pompes & Pistolets"}
+          </span>
+          <span className="sm:hidden">{t("pumps") || "Pompes"}</span>
         </h2>
         {isAdmin && (
           <div>
@@ -148,7 +160,8 @@ const Pumps = ({
               disabled={!(tanks && tanks.length > 0)}
               title={
                 !(tanks && tanks.length > 0)
-                  ? "Ajoutez un réservoir avant d'ajouter une pompe"
+                  ? t("addTankFirst") ||
+                    "Ajoutez un réservoir avant d'ajouter une pompe"
                   : ""
               }
               className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200 ${
@@ -158,8 +171,10 @@ const Pumps = ({
               }`}
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Ajouter Pompe</span>
-              <span className="sm:hidden">Ajouter</span>
+              <span className="hidden sm:inline">
+                {t("addPump") || "Ajouter Pompe"}
+              </span>
+              <span className="sm:hidden">{t("add") || "Ajouter"}</span>
             </button>
           </div>
         )}
@@ -173,7 +188,9 @@ const Pumps = ({
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-bold flex items-center gap-2">
                 <Fuel className="w-5 h-5 text-gray-600" />
-                <span>Pompe {pump.pumpNumber}</span>
+                <span>
+                  {(t("pumpLabel") || "Pompe") + " " + pump.pumpNumber}
+                </span>
               </h3>
               {isAdmin && (
                 <div className="flex gap-2">
@@ -195,11 +212,16 @@ const Pumps = ({
                   </button>
                   <button
                     onClick={() => {
-                      const msg = `Voulez-vous vraiment supprimer la pompe ${pump.pumpNumber} ? Cette action est irréversible.`
+                      const msg =
+                        t("confirmDeletePump") ||
+                        `Voulez-vous vraiment supprimer la pompe ${pump.pumpNumber} ? Cette action est irréversible.`
                       if (confirm(msg)) onDeletePump(pump.id)
                     }}
                     className="text-red-600 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors duration-200"
-                    title={`Supprimer la pompe ${pump.pumpNumber}`}
+                    title={
+                      t("deletePumpTitle") ||
+                      `Supprimer la pompe ${pump.pumpNumber}`
+                    }
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>

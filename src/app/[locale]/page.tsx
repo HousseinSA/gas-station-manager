@@ -2,21 +2,22 @@
 import React, { useState } from "react"
 import { Plus, Trash2, LogOut, Fuel } from "lucide-react"
 
-import { useAuth } from "./hooks/useAuth"
-import { useStations, Nozzle } from "./hooks/useStations"
-import { useMetrics } from "./hooks/useMetrics"
-import { useIndexHistory } from "./hooks/useIndexHistory"
-import { useTankHistory } from "./hooks/useTankHistory"
+import { useAuth } from "../hooks/useAuth"
+import { useStations, Nozzle } from "../hooks/useStations"
+import { useMetrics } from "../hooks/useMetrics"
+import { useIndexHistory } from "../hooks/useIndexHistory"
+import { useTankHistory } from "../hooks/useTankHistory"
 
-import Login from "./components/Login"
-import Dashboard from "./components/Dashboard"
-import Pumps from "./components/Pumps"
-import HistoryView from "./components/HistoryView"
-import StationModal from "./components/StationModal"
-import TankModal from "./components/TankModal"
-import PumpModal from "./components/PumpModal"
-import UserManagementView from "./components/UserManagementView"
-import Tanks from "./components/Tanks"
+import Login from "../components/Login"
+import Dashboard from "../components/Dashboard"
+import Pumps from "../components/Pumps"
+import HistoryView from "../components/HistoryView"
+import StationModal from "../components/StationModal"
+import TankModal from "../components/TankModal"
+import PumpModal from "../components/PumpModal"
+import UserManagementView from "../components/UserManagementView"
+import Tanks from "../components/Tanks"
+import LocaleSwitcher from "../components/LocaleSwitcher"
 
 interface PumpForm {
   id?: number
@@ -55,7 +56,13 @@ const GasStationApp = () => {
     deleteUser,
     canAccessStation,
     canViewSection,
+    initialized,
   } = useAuth()
+  // Use next-intl hook to get translations in client components
+  // `useTranslations` is a client hook from next-intl; function is injected via global helper earlier in migration
+  const t = (global as any).useTranslations
+    ? (global as any).useTranslations
+    : null
   const {
     stations,
     selectedStation,
@@ -96,14 +103,20 @@ const GasStationApp = () => {
 
       timeoutId = window.setTimeout(() => {
         try {
-          if (currentStation) commitAllNozzles(currentStation.id)
+          if (currentStation)
+            commitAllNozzles(
+              Number(currentStation.id ?? (currentStation as any)._id)
+            )
         } catch (e) {
           console.error("Error committing nozzles at midnight", e)
         }
         // after the first execution at midnight, set recurring interval every 24h
         intervalId = window.setInterval(() => {
           try {
-            if (currentStation) commitAllNozzles(currentStation.id)
+            if (currentStation)
+              commitAllNozzles(
+                Number(currentStation.id ?? (currentStation as any)._id)
+              )
           } catch (e) {
             console.error("Error in daily commit interval", e)
           }
@@ -145,9 +158,14 @@ const GasStationApp = () => {
   })
 
   // ───── Handlers ─────
-  const handleLogin = (password: string) => {
-    if (!login(password)) {
-      alert("Mot de passe incorrect ! Pour admin: admin123")
+  const handleLogin = async (password: string) => {
+    const ok = await login(password)
+    if (!ok) {
+      alert(
+        // Use t() if available, otherwise fallback to FR
+        (t && t("adminPasswordIncorrect")) ||
+          "Mot de passe incorrect ! Pour admin: admin123"
+      )
     }
   }
 
@@ -155,7 +173,10 @@ const GasStationApp = () => {
     if (!stationForm.name.trim()) return
     // Only admins can create stations
     if (!isAdmin) {
-      alert("Vous n'êtes pas autorisé à créer une station.")
+      alert(
+        (t && t("notAuthorizedCreateStation")) ||
+          "Vous n'êtes pas autorisé à créer une station."
+      )
       return
     }
     addStation(stationForm.name)
@@ -173,7 +194,7 @@ const GasStationApp = () => {
       payload,
     })
     if (!currentStation || !payload.name.trim() || !payload.capacity) return
-    addTank(currentStation.id, {
+    addTank(Number(currentStation.id ?? (currentStation as any)._id), {
       name: payload.name,
       capacity: payload.capacity,
       currentLevel: Math.min(payload.currentLevel || 0, payload.capacity),
@@ -202,12 +223,15 @@ const GasStationApp = () => {
     )
 
     if (!isEditingPump && isDuplicatePumpNumber) {
-      alert("Ce numéro de pompe existe déjà dans la station")
+      alert(
+        (t && t("pumpNumberExists")) ||
+          "Ce numéro de pompe existe déjà dans la station"
+      )
       return
     }
 
     if (pumpForm.nozzles.length === 0) {
-      alert("Au moins un pistolet est requis")
+      alert((t && t("atLeastOneNozzle")) || "Au moins un pistolet est requis")
       return
     }
 
@@ -217,10 +241,14 @@ const GasStationApp = () => {
       )
 
       if (existingPump) {
-        updatePump(currentStation.id, existingPump.id, {
-          pumpNumber: pumpForm.pumpNumber,
-          nozzles: pumpForm.nozzles.map((nozzle) => normalizeNozzle(nozzle)),
-        })
+        updatePump(
+          Number(currentStation.id ?? (currentStation as any)._id),
+          existingPump.id,
+          {
+            pumpNumber: pumpForm.pumpNumber,
+            nozzles: pumpForm.nozzles.map((nozzle) => normalizeNozzle(nozzle)),
+          }
+        )
       }
     } else {
       const nozzlesWithCorrectIndex = pumpForm.nozzles.map((nozzle) => {
@@ -228,7 +256,7 @@ const GasStationApp = () => {
         return { ...normalized, currentIndex: normalized.previousIndex }
       })
 
-      addPump(currentStation.id, {
+      addPump(Number(currentStation.id ?? (currentStation as any)._id), {
         pumpNumber: assignedPumpNumber,
         nozzles: nozzlesWithCorrectIndex,
       })
@@ -245,6 +273,11 @@ const GasStationApp = () => {
   }
 
   // ───── Render ─────
+  // Wait until auth has checked session cookie on initial load
+  if (!initialized) {
+    return null // or a spinner if you prefer
+  }
+
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />
   }
@@ -257,7 +290,9 @@ const GasStationApp = () => {
           <div className="flex items-center gap-3">
             <Fuel className="w-8 h-8" />
             <div>
-              <h1 className="text-xl font-bold">Gestion Stations-Service</h1>
+              <h1 className="text-xl font-bold">
+                {(t && t("managementTitle")) || "Gestion Stations-Service"}
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -266,53 +301,7 @@ const GasStationApp = () => {
                 onClick={() => setActiveTab("users")}
                 className="flex items-center gap-2 bg-green-700 px-4 py-2 rounded hover:bg-green-800"
               >
-                Gérer Utilisateurs
-              </button>
-            )}
-            {currentStation && (
-              <button
-                onClick={() => {
-                  if (
-                    confirm(
-                      "Clôturer la journée pour cette station maintenant ? (Si vous ne le faites pas, la mise à jour se fera automatiquement au prochain minuit)."
-                    )
-                  ) {
-                    // For each nozzle, create history entry for accumulated changes since last commit
-                    currentStation.pumps.forEach((pump) => {
-                      pump.nozzles.forEach((nozzle) => {
-                        // Only create history if there are changes
-                        if (nozzle.currentIndex !== nozzle.previousIndex) {
-                          const liters = Math.abs(
-                            nozzle.currentIndex - nozzle.previousIndex
-                          )
-
-                          // Create the index history entry
-                          indexHistory.addIndexUpdate({
-                            nozzleId: nozzle.id,
-                            pumpId: pump.id,
-                            previousIndex: nozzle.previousIndex,
-                            currentIndex: nozzle.currentIndex,
-                            liters,
-                            salePrice: nozzle.salePrice,
-                            costPrice: nozzle.costPrice,
-                            pumpName: pump.pumpNumber,
-                            nozzleLabel: `Pistolet ${nozzle.nozzleNumber}`,
-                          })
-                        }
-                      })
-                    })
-
-                    // Now commit all nozzles (updates previousIndex = currentIndex)
-                    commitAllNozzles(currentStation.id)
-
-                    alert(
-                      "Journée clôturée manuellement : previousIndex mis à jour."
-                    )
-                  }
-                }}
-                className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
-              >
-                Clôturer journée
+                {(t && t("manageUsers")) || "Gérer Utilisateurs"}
               </button>
             )}
             {/* automatic daily commit active; manual commit button removed */}
@@ -321,8 +310,15 @@ const GasStationApp = () => {
               className="flex items-center gap-2 bg-green-700 px-4 py-2 rounded hover:bg-green-800"
             >
               <LogOut className="w-4 h-4" />
-              Déconnexion
+              {(t && t("signOut")) || "Déconnexion"}
             </button>
+            {/* Language selector (visible when logged in) */}
+            <div className="pl-2">
+              {/* LocaleSwitcher is a client component */}
+              {/* eslint-disable-next-line @next/next/no-before-interactive-script-outside-document */}
+              {/* Render LocaleSwitcher dynamically */}
+              <LocaleSwitcher />
+            </div>
           </div>
         </div>
       </div>
@@ -337,9 +333,14 @@ const GasStationApp = () => {
             >
               <option value="">Sélectionner une station</option>
               {stations
-                .filter((s) => isAdmin || canAccessStation(s.id))
+                .filter(
+                  (s) => isAdmin || canAccessStation(Number(s.id ?? s._id))
+                )
                 .map((s) => (
-                  <option key={s.id} value={s.id}>
+                  <option
+                    key={String(s.id ?? s._id)}
+                    value={String(s.id ?? s._id)}
+                  >
                     {s.name}
                   </option>
                 ))}
@@ -355,13 +356,13 @@ const GasStationApp = () => {
                     className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
                   >
                     <Plus className="w-4 h-4" />
-                    Nouvelle Station
+                    {(t && t("newStation")) || "Nouvelle Station"}
                   </button>
                 )}
                 {selectedStation && (
                   <button
                     onClick={() => {
-                      const stationIdToDelete = selectedStation
+                      const stationIdToDelete = Number(selectedStation as any)
                       const usersWithAccess = users.filter((u) =>
                         u.allowedStations.includes(stationIdToDelete)
                       )
@@ -372,7 +373,7 @@ const GasStationApp = () => {
                           // If user is admin (shouldn't be in users list), skip
                           // remove station from their allowedStations
                           const remaining = user.allowedStations.filter(
-                            (s) => s !== stationIdToDelete
+                            (s) => s !== Number(stationIdToDelete as any)
                           )
                           if (remaining.length === 0) {
                             // delete the user (they no longer have stations)
@@ -394,7 +395,7 @@ const GasStationApp = () => {
                     className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Supprimer Station
+                    {(t && t("deleteStation")) || "Supprimer Station"}
                   </button>
                 )}
               </>
@@ -408,11 +409,24 @@ const GasStationApp = () => {
             <div className="bg-white rounded-lg shadow mb-4">
               <div className="flex border-b overflow-x-auto">
                 {[
-                  { id: "tableau-de-bord", label: "Tableau de Bord" },
-                  { id: "reservoirs", label: "Réservoirs" },
-                  { id: "pompes", label: "Pompes" },
-                  { id: "historique", label: "Historique" },
-                  { id: "users", label: "Utilisateurs", adminOnly: true },
+                  {
+                    id: "tableau-de-bord",
+                    label: (t && t("dashboardTab")) || "Tableau de Bord",
+                  },
+                  {
+                    id: "reservoirs",
+                    label: (t && t("tanksTab")) || "Réservoirs",
+                  },
+                  { id: "pompes", label: (t && t("pumpsTab")) || "Pompes" },
+                  {
+                    id: "historique",
+                    label: (t && t("historyTab")) || "Historique",
+                  },
+                  {
+                    id: "users",
+                    label: (t && t("usersTab")) || "Utilisateurs",
+                    adminOnly: true,
+                  },
                 ]
                   .filter((tab) =>
                     tab.adminOnly ? isAdmin : canViewSection(tab.id)
@@ -569,7 +583,9 @@ const GasStationApp = () => {
             {activeTab === "historique" && currentStation && (
               <HistoryView
                 key={selectedDate} // Force refresh when date changes
-                stationId={currentStation.id}
+                stationId={Number(
+                  currentStation.id ?? (currentStation as any)._id
+                )}
                 tankNames={Object.fromEntries(
                   currentStation.tanks.map((t) => [t.id, t.name])
                 )}
@@ -599,7 +615,10 @@ const GasStationApp = () => {
             {activeTab === "users" && isAdmin && (
               <UserManagementView
                 users={users}
-                stations={stations}
+                stations={stations.map((s) => ({
+                  id: Number(s.id ?? (s as any)._id),
+                  name: s.name,
+                }))}
                 onAddUser={addUser}
                 onDeleteUser={deleteUser}
                 onUpdateUser={updateUser}
@@ -610,10 +629,12 @@ const GasStationApp = () => {
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <Fuel className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-600 mb-2">
-              Aucune Station Sélectionnée
+              {(t && t("noStationSelectedTitle")) ||
+                "Aucune Station Sélectionnée"}
             </h2>
             <p className="text-gray-500 mb-4">
-              Créez une nouvelle station pour commencer
+              {(t && t("createStationPrompt")) ||
+                "Créez une nouvelle station pour commencer"}
             </p>
             <button
               onClick={() => {
@@ -622,7 +643,7 @@ const GasStationApp = () => {
               }}
               className="bg-green-600 text-white px-6  py-2 rounded-lg hover:bg-green-700"
             >
-              Créer Station
+              {(t && t("createStationBtn")) || "Créer Station"}
             </button>
           </div>
         )}

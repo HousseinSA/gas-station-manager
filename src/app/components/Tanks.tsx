@@ -1,5 +1,6 @@
 "use client"
 import React from "react"
+import { useTranslations } from "next-intl"
 import { Plus, Trash2 } from "lucide-react"
 
 interface Tank {
@@ -20,39 +21,21 @@ interface TanksProps {
 
 const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
   console.log("tanks", tanks)
+  const t = useTranslations()
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 p-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <svg
-            className="w-6 h-6 text-gray-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16M8 8h.01M8 12h.01M8 16h.01M16 8h.01M16 12h.01M16 16h.01"
-            />
-          </svg>
-          <span className="hidden sm:inline">Réservoirs</span>
-          <span className="sm:hidden">Réservoirs</span>
-        </h2>
+        <h2 className="text-lg font-medium">{t("tanks")}</h2>
         <button
           onClick={onAddTank}
           className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 transition-colors duration-200"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Ajouter Réservoir</span>
-          <span className="sm:inline">Ajouter</span>
+          <span className="hidden sm:inline">
+            {t("add") + " " + t("tanks")}
+          </span>
+          <span className="sm:inline">{t("add")}</span>
         </button>
       </div>
       <div className="space-y-4">
@@ -97,16 +80,18 @@ const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
                       onClick={() => onEditTank(tank.id)}
                       className="text-blue-600 hover:text-blue-700"
                     >
-                      Éditer
+                      {t("edit") || "Éditer"}
                     </button>
                   )}
                   <button
                     onClick={() => {
-                      const msg = `Voulez-vous vraiment supprimer le réservoir ${tank.name} ?`
+                      const msg =
+                        t("confirmDeleteTank") ||
+                        `Voulez-vous vraiment supprimer le réservoir ${tank.name} ?`
                       if (confirm(msg)) onDeleteTank(tank.id)
                     }}
                     className="text-red-600 hover:text-red-700"
-                    title={`Supprimer ${tank.name}`}
+                    title={t("deleteTankTitle") || `Supprimer ${tank.name}`}
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -114,19 +99,27 @@ const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-600">Capacité:</span>{" "}
+                  <span className="text-gray-600">
+                    {t("capacity") || "Capacité:"}
+                  </span>{" "}
                   {tank.capacity.toLocaleString()} L
                 </div>
                 <div>
-                  <span className="text-gray-600">Niveau actuel:</span>{" "}
+                  <span className="text-gray-600">
+                    {t("currentLevel") || "Niveau actuel:"}
+                  </span>{" "}
                   {tank.currentLevel.toFixed(2)} L
                 </div>
                 <div>
-                  <span className="text-gray-600">Date d&apos;ajout:</span>{" "}
+                  <span className="text-gray-600">
+                    {t("dateAdded") || "Date d'ajout:"}
+                  </span>{" "}
                   {new Date(tank.dateAdded).toLocaleDateString("fr-FR")}
                 </div>
                 <div>
-                  <span className="text-gray-600">Taux de remplissage:</span>{" "}
+                  <span className="text-gray-600">
+                    {t("fillRate") || "Taux de remplissage:"}
+                  </span>{" "}
                   {((tank.currentLevel / tank.capacity) * 100).toFixed(1)}%
                 </div>
               </div>
@@ -145,9 +138,7 @@ const Tanks = ({ tanks, onAddTank, onDeleteTank, onEditTank }: TanksProps) => {
           )
         })}
         {tanks.length === 0 && (
-          <p className="text-center text-gray-500 py-8">
-            Aucun réservoir ajouté
-          </p>
+          <p className="text-center text-gray-500 py-8">{t("noTanks")}</p>
         )}
       </div>
     </div>

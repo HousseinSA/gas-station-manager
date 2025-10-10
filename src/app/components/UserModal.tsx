@@ -19,6 +19,9 @@ const UserModal = ({ show, onClose, stations, onAddUser }: UserModalProps) => {
     password: "",
     allowedStations: [] as number[],
   })
+  const t = (global as any).useTranslations
+    ? (global as any).useTranslations
+    : null
 
   const handleSubmit = () => {
     if (!form.username || !form.password || form.allowedStations.length === 0) {
@@ -36,18 +39,22 @@ const UserModal = ({ show, onClose, stations, onAddUser }: UserModalProps) => {
   if (!show) return null
 
   return (
-    <Modal show={show} onClose={onClose} title="Nouvel Utilisateur">
+    <Modal
+      show={show}
+      onClose={onClose}
+      title={(t && t("newUserTitle")) || "Nouvel Utilisateur"}
+    >
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">
-            Nom d'utilisateur
+            {(t && t("usernameLabel")) || "Nom d'utilisateur"}
           </label>
           <input
             type="text"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
             className="w-full px-4 py-2 border rounded-lg"
-            placeholder="Nom d'utilisateur"
+            placeholder={(t && t("usernamePlaceholder")) || "Nom d'utilisateur"}
           />
         </div>
         <div>
@@ -57,7 +64,7 @@ const UserModal = ({ show, onClose, stations, onAddUser }: UserModalProps) => {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             className="w-full px-4 py-2 border rounded-lg"
-            placeholder="Mot de passe"
+            placeholder={(t && t("passwordPlaceholder")) || "Mot de passe"}
           />
         </div>
         <div>
@@ -98,13 +105,13 @@ const UserModal = ({ show, onClose, stations, onAddUser }: UserModalProps) => {
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
-            Annuler
+            {(t && t("cancel")) || "Annuler"}
           </button>
           <button
             onClick={handleSubmit}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            Ajouter
+            {(t && t("add")) || "Ajouter"}
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface TankLevel {
   timestamp: string
@@ -28,6 +28,21 @@ export function useTankHistory(stationId: number | null) {
     [date: string]: { [tankId: number]: TankDailyStatus }
   }>({})
 
+  // Load from server on mount
+  useEffect(() => {
+    let mounted = true
+    fetch("/api/tank-history")
+      .then((r) => r.json())
+      .then((data: TankLevel[]) => {
+        if (!mounted) return
+        setTankHistory(data)
+      })
+      .catch((e) => console.error("Failed to load tank history", e))
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   const addTankUpdate = (update: Omit<TankLevel, "timestamp">) => {
     const newUpdate = {
       ...update,
@@ -45,6 +60,12 @@ export function useTankHistory(stationId: number | null) {
           ),
         0
       )
+      // Persist
+      fetch("/api/tank-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUpdate),
+      }).catch((e) => console.error("Failed to persist tank history", e))
       return updated
     })
   }

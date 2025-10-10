@@ -1,6 +1,7 @@
 "use client"
 import React from "react"
 import Modal from "./Modal"
+import { useTranslations } from "next-intl"
 
 interface TankForm {
   name: string
@@ -39,6 +40,7 @@ const TankModal = ({
   onSaveEdit,
 }: TankModalProps) => {
   const [error, setError] = React.useState<string | null>(null)
+  const t = useTranslations()
   const [originalCapacity, setOriginalCapacity] = React.useState<number>(0)
   const [originalLevel, setOriginalLevel] = React.useState<number>(0)
 
@@ -56,24 +58,28 @@ const TankModal = ({
     <Modal
       show={show}
       onClose={onClose}
-      title={isEditing ? "Modifier Réservoir" : "Nouveau Réservoir"}
+      title={
+        isEditing
+          ? t("edit") + " " + (t("tank") || "Réservoir")
+          : t("newStation") || "Nouveau Réservoir"
+      }
     >
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">
-            Nom du Réservoir
+            {t("tankName") || "Nom du Réservoir"}
           </label>
           <input
             type="text"
             value={tankForm.name}
             onChange={(e) => setTankForm({ ...tankForm, name: e.target.value })}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-            placeholder="Ex: Réservoir Gasoil 1"
+            placeholder={t("tankPlaceholder") || "Ex: Réservoir Gasoil 1"}
           />
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">
-            Capacité (Litres)
+            {t("capacity") || "Capacité (Litres)"}
           </label>
           <input
             type="number"
@@ -87,13 +93,13 @@ const TankModal = ({
             }}
             min={isEditing ? originalCapacity : 0}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-            placeholder="Ex: 10000"
+            placeholder={t("capacityPlaceholder") || "Ex: 10000"}
           />
           {error && <div className="text-sm text-red-500 mt-1">{error}</div>}
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">
-            Type de Carburant
+            {t("fuelType") || "Type de Carburant"}
           </label>
           <select
             value={tankForm.fuelType}
@@ -108,18 +114,19 @@ const TankModal = ({
             }`}
             disabled={isEditing}
           >
-            <option value="Gasoil">Gasoil</option>
-            <option value="Essence">Essence</option>
+            <option value="Gasoil">{t("gasoil") || "Gasoil"}</option>
+            <option value="Essence">{t("essence") || "Essence"}</option>
           </select>
           {isEditing && (
             <div className="text-xs text-gray-500 mt-1">
-              Le type de carburant ne peut pas être modifié après la création
+              {t("fuelTypeImmutable") ||
+                "Le type de carburant ne peut pas être modifié après la création"}
             </div>
           )}
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">
-            Niveau Actuel (Litres)
+            {t("currentLevel") || "Niveau Actuel (Litres)"}
           </label>
           <input
             type="number"
@@ -135,7 +142,7 @@ const TankModal = ({
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 ${
               isEditing ? "bg-gray-50" : ""
             }`}
-            placeholder="Ex: 8000"
+            placeholder={t("levelPlaceholder") || "Ex: 8000"}
           />
         </div>
         <div className="flex gap-3 justify-end">
@@ -143,7 +150,7 @@ const TankModal = ({
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
-            Annuler
+            {t("cancel")}
           </button>
           <div className="flex items-center gap-4">
             {error && <div className="text-red-600 text-sm">{error}</div>}
@@ -176,7 +183,7 @@ const TankModal = ({
                   : "bg-green-600 hover:bg-green-700"
               } text-white rounded-lg`}
             >
-              {onSaveEdit ? "Enregistrer" : "Ajouter"}
+              {onSaveEdit ? t("edit") || "Enregistrer" : t("add") || "Ajouter"}
             </button>
           </div>
         </div>

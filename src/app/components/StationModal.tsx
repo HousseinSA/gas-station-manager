@@ -21,21 +21,30 @@ const StationModal = ({
   setStationForm,
   onAddStation,
 }: StationModalProps) => {
+  const t = (global as any).useTranslations
+    ? (global as any).useTranslations
+    : null
   if (!show) return null
 
   return (
-    <Modal show={show} onClose={onClose} title={"Nom de la Station"}>
+    <Modal
+      show={show}
+      onClose={onClose}
+      title={(t && t("stationTitle")) || "Nom de la Station"}
+    >
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">
-            Nom de la Station
+            {(t && t("stationNameLabel")) || "Nom de la Station"}
           </label>
           <input
             type="text"
             value={stationForm.name}
             onChange={(e) => setStationForm({ name: e.target.value })}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-            placeholder="Ex: Station Nouakchott Nord"
+            placeholder={
+              (t && t("stationPlaceholder")) || "Ex: Station Nouakchott Nord"
+            }
           />
         </div>
         <div className="flex gap-3 justify-end">
@@ -43,13 +52,13 @@ const StationModal = ({
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
-            Annuler
+            {(t && t("cancel")) || "Annuler"}
           </button>
           <button
             onClick={onAddStation}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            Ajouter
+            {(t && t("add")) || "Ajouter"}
           </button>
         </div>
       </div>

@@ -42,6 +42,21 @@ export function useIndexHistory() {
     [date: string]: DailyMetrics
   }>({})
 
+  // Load from server on mount
+  React.useEffect(() => {
+    let mounted = true
+    fetch("/api/index-history")
+      .then((r) => r.json())
+      .then((data: IndexUpdate[]) => {
+        if (!mounted) return
+        setIndexHistory(data)
+      })
+      .catch((e) => console.error("Failed to load index history", e))
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   // Track the committed index (previousIndex) for each nozzle
   const lastCommittedIndexRef = React.useRef<{ [nozzleId: number]: number }>({})
 
@@ -73,6 +88,12 @@ export function useIndexHistory() {
       const updated = [...prev, newUpdate]
       // Recalculate metrics with this update
       setTimeout(() => recalculateMetricsForDate(timestamp.split("T")[0]), 0)
+      // Persist
+      fetch("/api/index-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUpdate),
+      }).catch((e) => console.error("Failed to persist index update", e))
       return updated
     })
   }

@@ -25,6 +25,9 @@ const UserManagementView = ({
   onDeleteUser,
   onUpdateUser,
 }: UserManagementViewProps) => {
+  const t = (global as any).useTranslations
+    ? (global as any).useTranslations
+    : null
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -176,16 +179,22 @@ const UserManagementView = ({
               d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
             />
           </svg>
-          <span className="hidden sm:inline">Gestion des Utilisateurs</span>
-          <span className="sm:hidden">Utilisateurs</span>
+          <span className="hidden sm:inline">
+            {(t && t("manageUsers")) || "Gestion des Utilisateurs"}
+          </span>
+          <span className="sm:hidden">
+            {(t && t("usersTab")) || "Utilisateurs"}
+          </span>
         </h2>
         <button
           onClick={() => setShowAddModal(true)}
           className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 transition-colors duration-200"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Ajouter Utilisateur</span>
-          <span className="sm:inline">Ajouter</span>
+          <span className="hidden sm:inline">
+            {(t && t("addUserBtn")) || "Ajouter Utilisateur"}
+          </span>
+          <span className="sm:inline">{(t && t("add")) || "Ajouter"}</span>
         </button>
       </div>
 
@@ -212,7 +221,9 @@ const UserManagementView = ({
                       d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                     />
                   </svg>
-                  <span className="font-medium text-gray-700">Stations:</span>
+                  <span className="font-medium text-gray-700">
+                    {(t && t("stationsLabel")) || "Stations:"}
+                  </span>
                   <span className="text-gray-600">
                     {user.allowedStations
                       .map((id) => stations.find((s) => s.id === id)?.name)
@@ -278,7 +289,7 @@ const UserManagementView = ({
                 d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
               />
             </svg>
-            Aucun utilisateur ajouté
+            {(t && t("noUsers")) || "Aucun utilisateur ajouté"}
           </div>
         )}
       </div>
@@ -290,7 +301,7 @@ const UserManagementView = ({
           setShowAddModal(false)
           setUserForm({ name: "", password: "", allowedStations: [] })
         }}
-        title="Nouvel Utilisateur"
+        title={(t && t("newUserTitle")) || "Nouvel Utilisateur"}
       >
         {UserFormContent()}
         <div className="flex gap-3 justify-end pt-6">
@@ -298,13 +309,13 @@ const UserManagementView = ({
             onClick={() => setShowAddModal(false)}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-gray-700"
           >
-            Annuler
+            {(t && t("cancel")) || "Annuler"}
           </button>
           <button
             onClick={handleAddUser}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
           >
-            Ajouter
+            {(t && t("add")) || "Ajouter"}
           </button>
         </div>
       </Modal>
@@ -317,7 +328,7 @@ const UserManagementView = ({
           setEditingUser(null)
           setUserForm({ name: "", password: "", allowedStations: [] })
         }}
-        title="Modifier Utilisateur"
+        title={(t && t("editUserTitle")) || "Modifier Utilisateur"}
       >
         {UserFormContent()}
         <div className="flex gap-3 justify-end pt-4">
@@ -328,13 +339,13 @@ const UserManagementView = ({
             }}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
-            Annuler
+            {(t && t("cancel")) || "Annuler"}
           </button>
           <button
             onClick={handleUpdateUser}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            Modifier
+            {(t && t("edit")) || "Modifier"}
           </button>
         </div>
       </Modal>

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react"
 import Modal from "./Modal"
 import { Station, Nozzle } from "../hooks/useStations"
+import { useTranslations } from "next-intl"
 
 interface PumpForm {
   id?: number
@@ -31,6 +32,7 @@ const PumpModal = ({
   currentStation,
   isEditing,
 }: PumpModalProps) => {
+  const t = useTranslations()
   const [pendingNozzles, setPendingNozzles] = useState<Nozzle[]>([])
   const [pendingCount, setPendingCount] = useState<number>(1)
   console.log("current station", currentStation?.tanks[0]?.fuelType)
@@ -82,23 +84,23 @@ const PumpModal = ({
     <Modal
       onClose={onClose}
       show={show}
-      title={isEditing ? "Modifier Pompe" : "Nouvelle Pompe"}
+      title={isEditing ? `${t("edit")} ${t("pumps")}` : t("addPump")}
     >
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">
-            Numéro de Pompe
+            {t("pumpNumber") || "Numéro de Pompe"}
           </label>
           <div className="w-full px-4 py-2 border rounded-lg bg-gray-50 text-sm text-gray-700">
             {isEditing && pumpForm.pumpNumber
               ? pumpForm.pumpNumber
-              : "Auto (assigné lors de l'ajout)"}
+              : t("autoAssigned") || "Auto (assigné lors de l'ajout)"}
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">
-            Nombre de Pistolets
+            {t("nozzleCount") || "Nombre de Pistolets"}
           </label>
           <select
             value={String(pendingCount) || "1"}
@@ -136,14 +138,18 @@ const PumpModal = ({
 
         {pendingNozzles.length > 0 && (
           <div className="border-t pt-4 space-y-4">
-            <h3 className="font-medium">Configuration des Pistolets</h3>
+            <h3 className="font-medium">
+              {t("nozzleConfiguration") || "Configuration des Pistolets"}
+            </h3>
             {pendingNozzles.map((nozzle, index) => (
               <div
                 key={nozzle.id}
                 className="bg-gray-50 p-4 rounded-lg space-y-3"
               >
                 <div className="flex justify-between items-center">
-                  <h4 className="font-medium text-sm">Pistolet {index + 1}</h4>
+                  <h4 className="font-medium text-sm">
+                    {t("nozzle") || "Pistolet"} {index + 1}
+                  </h4>
                   <div>
                     <button
                       onClick={() => {
@@ -178,11 +184,11 @@ const PumpModal = ({
                       disabled={pendingNozzles.length <= 1}
                       title={
                         pendingNozzles.length <= 1
-                          ? "Impossible de supprimer: au moins un pistolet requis"
-                          : "Supprimer"
+                          ? t("atLeastOneNozzle")
+                          : t("delete")
                       }
                     >
-                      Supprimer
+                      {t("delete")}
                     </button>
                   </div>
                 </div>
@@ -190,7 +196,7 @@ const PumpModal = ({
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-xs font-medium mb-1">
-                        Réservoir
+                        {t("tank") || "Réservoir"}
                       </label>
                       <select
                         value={String(
@@ -224,7 +230,7 @@ const PumpModal = ({
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1">
-                        Type de Carburant
+                        {t("fuelType") || "Type de Carburant"}
                       </label>
 
                       <div
@@ -246,7 +252,7 @@ const PumpModal = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium mb-1">
-                      Prix de Vente (MRU/L)
+                      {t("salePrice") || "Prix de Vente (MRU/L)"}
                     </label>
                     <input
                       type="number"
@@ -262,12 +268,12 @@ const PumpModal = ({
                       }}
                       className="w-full px-3 py-2 text-sm border rounded-lg"
                       step="0.01"
-                      placeholder="0,00"
+                      placeholder={t("pricePlaceholder") || "0,00"}
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium mb-1">
-                      Prix de Coût (MRU/L)
+                      {t("costPrice") || "Prix de Coût (MRU/L)"}
                     </label>
                     <input
                       type="number"
@@ -281,14 +287,13 @@ const PumpModal = ({
                           return copy
                         })
                       }}
-                      className="w-full px-3 py-2 text-sm border rounded-lg"
                       step="0.01"
-                      placeholder="0,00"
+                      placeholder={t("pricePlaceholder") || "0,00"}
                     />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs font-medium mb-1">
-                      Index d'installation
+                      {t("installIndex") || "Index d'installation"}
                     </label>
                     <input
                       type="number"
@@ -321,17 +326,17 @@ const PumpModal = ({
                           ? "bg-gray-100 cursor-not-allowed"
                           : ""
                       }`}
-                      placeholder="0"
+                      placeholder={t("indexPlaceholder") || "0"}
                       title={
                         isEditing &&
                         !nozzle.isNew &&
                         nozzle.currentIndex !== nozzle.previousIndex
-                          ? "Cannot edit: Fuel has been sold from this nozzle"
+                          ? t("cannotEditNozzle")
                           : ""
                       }
                     />
                     <div className="text-xs text-gray-500 mt-1">
-                      Index d'installation:{" "}
+                      {t("installIndex")}:{" "}
                       {nozzle.installIndex ?? nozzle.previousIndex ?? 0}
                     </div>
                   </div>
@@ -346,7 +351,7 @@ const PumpModal = ({
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
-            Annuler
+            {t("cancel")}
           </button>
           <button
             onClick={() => {
@@ -371,7 +376,7 @@ const PumpModal = ({
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
-            {isEditing ? "Modifier" : "Ajouter"}
+            {isEditing ? t("edit") : t("add")}
           </button>
         </div>
       </div>

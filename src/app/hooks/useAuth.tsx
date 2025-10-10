@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 interface User {
   id: number
@@ -18,66 +18,85 @@ const ADMIN_USER: User = {
 }
 
 export function useAuth() {
-  const [users, setUsers] = useState<User[]>([ADMIN_USER])
+  const [users, setUsers] = useState<User[]>([])
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [initialized, setInitialized] = useState(false)
 
-  const login = (password: string) => {
-    // For admin, check the admin password
-    if (password === "admin123") {
-      setCurrentUser(ADMIN_USER)
-      return true
-    }
+  useEffect(() => {
+    fetch("/api/users", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data: any) => setUsers(data || []))
+      .catch(() => {})
+  }, [])
+  useEffect(() => {
+    fetch("/api/auth", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data: any) => {
+        if (data?.user) setCurrentUser(data.user)
+      })
+      .catch(() => {})
+      .finally(() => setInitialized(true))
+  }, [])
 
-    // For other users, check if password matches
-    const user = users.find((u) => !u.isAdmin && u.password === password)
-    if (user) {
-      setCurrentUser(user)
-      return true
-    }
-    return false
+  const login = async (password: string) => {
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    setCurrentUser(data.user)
+    setInitialized(true)
+    return true
   }
 
-  const logout = () => {
+  const logout = async () => {
+    await fetch("/api/auth", { method: "DELETE", credentials: "include" })
     setCurrentUser(null)
   }
 
-  const addUser = (userData: Omit<User, "id" | "isAdmin">) => {
+  const addUser = async (userData: Omit<User, "id" | "isAdmin">) => {
     if (!currentUser?.isAdmin) return
-    // Prevent creating a user with the same password as admin
     if (userData.password === ADMIN_USER.password) {
       alert(
         "Impossible: le mot de passe ne peut pas être identique au mot de passe admin."
       )
       return
     }
-    // Require at least one allowed station when creating a user
     if (!userData.allowedStations || userData.allowedStations.length === 0) {
       alert(
         "Impossible: l'utilisateur doit avoir au moins une station accessible."
       )
       return
     }
-    const newUser = {
-      ...userData,
-      id: Date.now(),
-      isAdmin: false,
+    const res = await fetch("/api/users", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData),
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      alert(err?.error || "Failed to create user")
+      return
     }
-    setUsers([...users, newUser])
+    const created = await res.json()
+    setUsers((prev) => [...prev, created])
   }
 
-  const updateUser = (
+  const updateUser = async (
     userId: number,
     updates: Partial<Omit<User, "id" | "isAdmin">>
   ) => {
     if (!currentUser?.isAdmin) return
-    // Prevent updating user to use admin password
     if (updates.password && updates.password === ADMIN_USER.password) {
       alert(
         "Impossible: le mot de passe ne peut pas être identique au mot de passe admin."
       )
       return
     }
-    // If allowedStations is being updated, require at least one station
     if (
       updates.allowedStations &&
       Array.isArray(updates.allowedStations) &&
@@ -88,14 +107,25 @@ export function useAuth() {
       )
       return
     }
-    setUsers(
-      users.map((user) => (user.id === userId ? { ...user, ...updates } : user))
-    )
+    const res = await fetch("/api/users", {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: userId, ...updates }),
+    })
+    if (!res.ok) return
+    const updated = await res.json()
+    setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)))
   }
 
-  const deleteUser = (userId: number) => {
+  const deleteUser = async (userId: number) => {
     if (!currentUser?.isAdmin) return
-    setUsers(users.filter((user) => user.id !== userId))
+    const res = await fetch(`/api/users?id=${userId}`, {
+      method: "DELETE",
+      credentials: "include",
+    })
+    if (!res.ok) return
+    setUsers((prev) => prev.filter((u) => u.id !== userId))
   }
 
   const getUsers = () => {
@@ -130,5 +160,6 @@ export function useAuth() {
     deleteUser,
     canAccessStation,
     canViewSection,
+    initialized,
   }
 }
