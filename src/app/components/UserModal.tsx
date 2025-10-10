@@ -38,22 +38,18 @@ const UserModal = ({ show, onClose, stations, onAddUser }: UserModalProps) => {
   if (!show) return null
 
   return (
-    <Modal
-      show={show}
-      onClose={onClose}
-      title={(t && t("newUserTitle")) || "Nouvel Utilisateur"}
-    >
+    <Modal show={show} onClose={onClose} title={t("newUserTitle")}>
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">
-            {(t && t("usernameLabel")) || "Nom d'utilisateur"}
+            {t("usernameLabel")}
           </label>
           <input
             type="text"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
             className="w-full px-4 py-2 border rounded-lg"
-            placeholder={(t && t("usernamePlaceholder")) || "Nom d'utilisateur"}
+            placeholder={t("usernamePlaceholder")}
           />
         </div>
         <div>
@@ -63,7 +59,7 @@ const UserModal = ({ show, onClose, stations, onAddUser }: UserModalProps) => {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             className="w-full px-4 py-2 border rounded-lg"
-            placeholder={(t && t("passwordPlaceholder")) || "Mot de passe"}
+            placeholder={t("passwordPlaceholder") || "Mot de passe"}
           />
         </div>
         <div>
@@ -98,19 +94,18 @@ const UserModal = ({ show, onClose, stations, onAddUser }: UserModalProps) => {
             ))}
           </div>
         </div>
-        {/* no extra permissions fields */}
         <div className="flex gap-3 justify-end pt-4">
           <button
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
-            {(t && t("cancel")) || "Annuler"}
+            {t("cancel") || "Annuler"}
           </button>
           <button
             onClick={handleSubmit}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            {(t && t("add")) || "Ajouter"}
+            {t("add") || "Ajouter"}
           </button>
         </div>
       </div>

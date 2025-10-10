@@ -5,6 +5,7 @@ import { Calendar } from "lucide-react"
 import DailyMetrics from "./DailyMetrics"
 import TankStatusSection from "./TankStatusSection"
 import PumpDetailsSection from "./PumpDetailsSection"
+import { useTranslations } from "next-intl"
 
 interface DailyMetricsData {
   totalLiters: number
@@ -37,12 +38,9 @@ export default function DailySummary({
   tankNames,
   pumpNumbers,
 }: Props) {
+  const t = useTranslations()
   if (!metrics)
-    return (
-      <div className="text-center p-8 text-gray-500">
-        Aucune donnée disponible pour cette date
-      </div>
-    )
+    return <div className="text-center p-8 text-gray-500">{t("noHistory")}</div>
 
   return (
     <div className="space-y-6">

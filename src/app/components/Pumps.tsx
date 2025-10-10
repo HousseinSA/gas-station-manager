@@ -136,7 +136,7 @@ const Pumps = ({
           />
           <div className="absolute -top-2 -left-2">
             <div className="text-[10px] bg-gray-100 px-1 rounded text-gray-600">
-              Index
+              {t("Index")}
             </div>
           </div>
         </div>
@@ -256,7 +256,7 @@ const Pumps = ({
 
                       return (
                         <div className="flex justify-between items-center mb-2">
-                          <div>
+                          <div className="flex items-center gap-2">
                             <span
                               className={`font-medium mr-2 ${
                                 nozzle.fuelType === "Gasoil"
@@ -270,7 +270,7 @@ const Pumps = ({
                               {t(nozzle.fuelType.toLowerCase())}
                             </span>
                             <span className="text-xs text-gray-500">
-                              {t("installIndex")}:{" "}
+                              {t("installIndex")}: (
                               {nozzle.installIndex ?? nozzle.previousIndex})
                             </span>
                           </div>
@@ -305,20 +305,26 @@ const Pumps = ({
                       )
                     })()}
                     <div className="grid grid-cols-2 gap-3 text-sm mb-2">
-                      <div>
-                        <span className="text-gray-600">Index précédent:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">
+                          {t("IndexPrécédent")}:
+                        </span>
                         <span className="ml-2 font-medium">
                           {nozzle.previousIndex}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Prix de vente:</span>
-                        <span className="ml-2 font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">
+                          {t("normalSalePrice")}:
+                        </span>
+                        <span className="ml-2 font-medium" dir="ltr">
                           {formatCurrency(nozzle.salePrice)} MRU/L
                         </span>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Index actuel:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">
+                          {t("IndexActuel")}:
+                        </span>
                         <div className="inline-flex items-center ml-2">
                           <NozzleRow
                             nozzle={nozzle}
@@ -327,9 +333,11 @@ const Pumps = ({
                           />
                         </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Prix de coût:</span>
-                        <span className="ml-2 font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">
+                          {t("normalCostPrice")}:
+                        </span>
+                        <span className="ml-2 font-medium" dir="ltr">
                           {formatCurrency(nozzle.costPrice)} MRU/L
                         </span>
                       </div>
